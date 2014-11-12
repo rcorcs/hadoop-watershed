@@ -18,10 +18,7 @@
 package hws.core;
 
 import java.util.Map;
-//import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
-
-//import cloudos.kernel.DefaultExecutor;
 
 public abstract class ChannelSender<DataType> extends DefaultExecutor {
 	private int instanceId;
@@ -33,64 +30,61 @@ public abstract class ChannelSender<DataType> extends DefaultExecutor {
 
 	private Map<String, String> attrs;
 
-	//public abstract void start();
-	//public abstract void finish();
 	public abstract void send(DataType data);
 
-	public void setInstanceId(int instanceId){
+	void instanceId(int instanceId){
 		this.instanceId = instanceId;
 	}
 
-	public int getInstanceId(){
+	public int instanceId(){
 		return this.instanceId;
 	}
 
-	public void setChannelName(String channelName){
+	public void channelName(String channelName){
 		this.channelName = channelName;
 	}
 
-	public String getChannelName(){
+	public String channelName(){
 		return this.channelName;
 	}
 
-	public void setSourceFilterName(String srcFilterName){
+	void producerName(String srcFilterName){
 		this.srcFilterName = srcFilterName;
 	}
 
-	public String getSourceFilterName(){
+	public String producerName(){
 		return this.srcFilterName;
 	}
 
-	public void setDestinationFilterName(String dstFilterName){
+	void consumerName(String dstFilterName){
 		this.dstFilterName = dstFilterName;
 	}
 
-	public String getDestinationFilterName(){
+	public String consumerName(){
 		return this.dstFilterName;
 	}
 
-	public void setDestinationInstances(int dstInstances){
+	void numConsumerInstances(int dstInstances){
 		this.dstInstances = dstInstances;
 	}
 
-	public int getDestinationInstances(){
+	public int numConsumerInstances(){
 		return this.dstInstances;
 	}
 
-	public void setAttribute(String key, String value){
+	void attribute(String key, String value){
 		this.attrs.put(key, value);
 	}
 
-	public String getAttribute(String key){
+	public String attribute(String key){
 		return this.attrs.get(key);
 	}
 
-	public Map<String, String> getAttributes(){
+	Map<String, String> attributes(){
 		return this.attrs;
 	}
 
-
-	public void setAttributes(Map<String, String> attrs){
+	void attributes(Map<String, String> attrs){
 		this.attrs = attrs;
 	}
 

@@ -47,31 +47,31 @@ public abstract class Filter<InputType, OutputType> extends DefaultExecutor impl
 		process(src, data);
 	}
 
-	public void setName(String name){
+	void name(String name){
 		this.name = name;
 	}
 
-	public String getName(){
+	public String name(){
 		return this.name;
 	}
 
-	public void setInstanceId(int instanceId){
+	void instanceId(int instanceId){
 		this.instanceId = instanceId;
 	}
 
-	public int getInstanceId(){
+	public int instanceId(){
 		return this.instanceId;
 	}
 
-	public void setAttributes(Map<String, String> attrs){
+	void attributes(Map<String, String> attrs){
 		this.attrs = attrs;
 	}
 
-	public String getAttribute(String attr){
+	public String attribute(String attr){
 		return this.attrs.get(attr);
 	}
 
-	public void setInputChannels(Set<String> inputChannels){
+	void inputChannels(Set<String> inputChannels){
 		this.inputChannels = inputChannels;
 		inChannelsHalted = new ConcurrentHashMap<String, Boolean>();
 		for(String chann: this.inputChannels){
@@ -79,11 +79,11 @@ public abstract class Filter<InputType, OutputType> extends DefaultExecutor impl
 		}
 	}
 	
-	public Set<String> getInputChannels(){
+	public Set<String> inputChannels(){
 		return this.inputChannels;
 	}
 
-	public void setOutputChannels(Set<String> outputChannels){
+	void outputChannels(Set<String> outputChannels){
 		this.outputChannels = outputChannels;
 		this.outputSets = new ConcurrentHashMap<String, ChannelOutputSet<OutputType>>();
 		for(String channelName: this.outputChannels){
@@ -91,16 +91,16 @@ public abstract class Filter<InputType, OutputType> extends DefaultExecutor impl
 		}
 	}
 
-	public Set<String> getOutputChannels(){
+	public Set<String> outputChannels(){
 		return this.outputChannels;
 	}
 
-	public ChannelOutputSet<OutputType> getOutputChannel(String channelName){
+	public ChannelOutputSet<OutputType> outputChannel(String channelName){
 		return this.outputSets.get(channelName);
 	}
 
 	public void halt() throws IOException {
-		SimpleEntry<String, Integer> pair = new SimpleEntry<String,Integer>(getName(), new Integer(getInstanceId()));
+		SimpleEntry<String, Integer> pair = new SimpleEntry<String,Integer>(name(), new Integer(instanceId()));
 		//TODO: halt (name,instance)
 	}
 

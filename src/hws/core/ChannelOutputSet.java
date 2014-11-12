@@ -20,7 +20,6 @@ package hws.core;
 import java.io.IOException;
 
 import java.util.Map;
-//import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 import java.lang.reflect.ParameterizedType;
@@ -46,21 +45,17 @@ public class ChannelOutputSet<DataType>{
 
 	public void start() {
 		hasStarted = true;
-		//this.hostName = hostName;
-		//this.taskId = taskId;
 		System.out.println("starting channel writer set");
 		for(String filterName : this.senders.keySet()){
 			this.senders.get(filterName).start();
-			//ChannelWriter<DataType> output = outputChannels.get(filterName);
-			//output.start(hostName, taskId);
 		}
 	}
 
-	public Map<String, ChannelSender<DataType>> getChannelSenders(){
+	public Map<String, ChannelSender<DataType>> channelSenders(){
 		return this.senders;
 	}
 
-	public ChannelSender<DataType> getChannelSender(String filterName){
+	public ChannelSender<DataType> channelSender(String filterName){
 		return this.senders.get(filterName);
 	}
 

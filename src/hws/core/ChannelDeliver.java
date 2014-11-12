@@ -18,10 +18,7 @@
 package hws.core;
 
 import java.util.Map;
-//import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
-
-//import cloudos.kernel.DefaultExecutor;
 
 public abstract class ChannelDeliver<DataType> extends DefaultExecutor {
 	private ChannelReceiver<DataType> receiver;
@@ -33,72 +30,68 @@ public abstract class ChannelDeliver<DataType> extends DefaultExecutor {
 
 	private Map<String, String> attrs;
 
-	public ChannelReceiver<DataType> getChannelReceiver(){
+	public ChannelReceiver<DataType> channelReceiver(){
 		return this.receiver;
 	}
 
-	public void setChannelReceiver(ChannelReceiver<DataType> receiver){
+	void channelReceiver(ChannelReceiver<DataType> receiver){
 		this.receiver = receiver;
 	}
 
-	public void setInstanceId(int instanceId){
+	void instanceId(int instanceId){
 		this.instanceId = instanceId;
 	}
 
-	public int getInstanceId(){
+	public int instanceId(){
 		return this.instanceId;
 	}
 
-	public void setNumInstances(int nInstances){
+	void numFilterInstances(int nInstances){
 		this.nInstances = nInstances;
 	}
 
-	public int getNumInstances(){
+	public int numFilterInstances(){
 		return this.nInstances;
 	}
 
-	public void setChannelName(String channelName){
+	public void channelName(String channelName){
 		this.channelName = channelName;
 	}
 
-	public String getChannelName(){
+	public String channelName(){
 		return this.channelName;
 	}
 
 	public void deliver(String src, DataType data){
-		getChannelReceiver().receive(src, data);
+		channelReceiver().receive(src, data);
 	}
 
-	public void setFilter(Filter filter){
+	void filter(Filter filter){
 		this.filter = filter;
 	}
 
-	public Filter getFilter(){
+	Filter filter(){
 		return this.filter;
 	}
 
 	public void halt(){
-		filter.halt(getChannelName());
+		filter.halt(channelName());
 	}
 
-	public void setAttribute(String key, String value){
+	void attribute(String key, String value){
 		this.attrs.put(key, value);
 	}
 
-	public String getAttribute(String key){
+	public String attribute(String key){
 		return this.attrs.get(key);
 	}
 
-	public Map<String, String> getAttributes(){
+	Map<String, String> attributes(){
 		return this.attrs;
 	}
 
 
-	public void setAttributes(Map<String, String> attrs){
+	void attributes(Map<String, String> attrs){
 		this.attrs = attrs;
 	}
-
-
-	//public abstract void start();
-	//public abstract void finish();
 }

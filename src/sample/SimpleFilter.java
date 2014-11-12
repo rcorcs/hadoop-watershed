@@ -26,8 +26,8 @@ public class SimpleFilter extends Filter<String, String>{
     public void start(){
         super.start();
         try{
-           out = new PrintWriter(new BufferedWriter(new FileWriter("/home/hadoop/rcor/yarn/filter-"+getName()+".out")));
-           out.println("Starting Filter: "+getName()+" instance "+getInstanceId());
+           out = new PrintWriter(new BufferedWriter(new FileWriter("/home/hadoop/rcor/yarn/filter-"+name()+".out")));
+           out.println("Starting Filter: "+name()+" instance "+instanceId());
            out.flush();
         }catch(IOException e){
            e.printStackTrace();
@@ -37,7 +37,7 @@ public class SimpleFilter extends Filter<String, String>{
 	public void finish(){
         super.finish();
         //try{
-           out.println("Finishing Filter: "+getName()+" instance "+getInstanceId());
+           out.println("Finishing Filter: "+name()+" instance "+instanceId());
            out.flush();
            out.close();
         /*}catch(IOException e){

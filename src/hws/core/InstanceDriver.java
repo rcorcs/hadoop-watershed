@@ -212,7 +212,6 @@ public class InstanceDriver {
         }
     }
 
-    //TODO improve the method names of Filter, ChannelSender, etc. in a similar manner to InstanceInfo.
     /**
     */
     private void loadInstance(InstanceInfo instanceInfo) throws IOException, ClassNotFoundException, InstantiationException, IllegalAccessException {
@@ -220,48 +219,45 @@ public class InstanceDriver {
 
         //loading filter instance from the instance info specification
         this.filter = (Filter)Class.forName(instanceInfo.filterInfo().className()).newInstance();
-        this.filter.setName(instanceInfo.filterInfo().name());
-        this.filter.setInstanceId(instanceInfo.instanceId());
-        this.filter.setAttributes(instanceInfo.filterInfo().attributes());
+        this.filter.name(instanceInfo.filterInfo().name());
+        this.filter.instanceId(instanceInfo.instanceId());
+        this.filter.attributes(instanceInfo.filterInfo().attributes());
 
         //loading output channels
-        this.filter.setOutputChannels(instanceInfo.outputChannels().keySet());
+        this.filter.outputChannels(instanceInfo.outputChannels().keySet());
         for(String channelName: instanceInfo.outputChannels().keySet()){
            for(OutputChannelInfo outputChannelInfo: instanceInfo.outputChannels().get(channelName)){
               ChannelSender sender = (ChannelSender)Class.forName(outputChannelInfo.senderInfo().className()).newInstance();
-              sender.setInstanceId(instanceInfo.instanceId());
-              sender.setChannelName(channelName);
-              sender.setAttributes(outputChannelInfo.senderInfo().attributes());
-              sender.setSourceFilterName(instanceInfo.filterInfo().name()); //TODO producerName
-              sender.setDestinationFilterName(outputChannelInfo.consumerName()); //TODO consumerName
-              sender.setDestinationInstances(outputChannelInfo.numConsumerInstances()); //TODO numConsumerInstances
+              sender.instanceId(instanceInfo.instanceId());
+              sender.channelName(channelName);
+              sender.attributes(outputChannelInfo.senderInfo().attributes());
+              sender.producerName(instanceInfo.filterInfo().name());
+              sender.consumerName(outputChannelInfo.consumerName());
+              sender.numConsumerInstances(outputChannelInfo.numConsumerInstances());
               this.outputStartingOrder.add(sender);
-              //TODO remove this debug start/finish
-              //sender.start();
-              //sender.finish();
 
               //StubInfo encoderInfo = null;
               //while( (encoderInfo = outputChannelInfo.encoderInfoStack().popEncoderInfo())!=null ){
               for(StubInfo encoderInfo: outputChannelInfo.encoderInfoStack()){
                  ChannelEncoder encoder = (ChannelEncoder)Class.forName(encoderInfo.className()).newInstance();
-                 encoder.setChannelSender(sender); //bind the encoder to the stack of senders
-			     encoder.setInstanceId(instanceInfo.instanceId());
-                 encoder.setChannelName(channelName);
-                 encoder.setAttributes(encoderInfo.attributes());
-                 encoder.setSourceFilterName(instanceInfo.filterInfo().name());
-                 encoder.setDestinationFilterName(outputChannelInfo.consumerName());
-                 encoder.setDestinationInstances(outputChannelInfo.numConsumerInstances());
+                 encoder.channelSender(sender); //bind the encoder to the stack of senders
+			     encoder.instanceId(instanceInfo.instanceId());
+                 encoder.channelName(channelName);
+                 encoder.attributes(encoderInfo.attributes());
+                 encoder.producerName(instanceInfo.filterInfo().name());
+                 encoder.consumerName(outputChannelInfo.consumerName());
+                 encoder.numConsumerInstances(outputChannelInfo.numConsumerInstances());
                  this.outputStartingOrder.add(encoder);
                  sender = encoder; //update the bottom of the stack of channel senders
               }
               
-              this.filter.getOutputChannel(channelName).addChannelSender(outputChannelInfo.consumerName(), sender);
+              this.filter.outputChannel(channelName).addChannelSender(outputChannelInfo.consumerName(), sender);
            }
         }
         this.outputStartingOrder.add(filter);
 
         //loading input channels
-        this.filter.setInputChannels(instanceInfo.inputChannels().keySet());
+        this.filter.inputChannels(instanceInfo.inputChannels().keySet());
         for(String channelName: instanceInfo.inputChannels().keySet()){
            InputChannelInfo inputChannelInfo = instanceInfo.inputChannels().get(channelName);
            if(!this.inputStartingOrder.containsKey(channelName)){
@@ -272,35 +268,27 @@ public class InstanceDriver {
            //while( (encoderInfo = inputChannelInfo.decoderInfoStack().popDecoderInfo())!=null ){
            for(StubInfo decoderInfo: inputChannelInfo.decoderInfoStack()){
               ChannelDecoder decoder = (ChannelDecoder)Class.forName(decoderInfo.className()).newInstance();
-              decoder.setChannelReceiver(receiver);
-              decoder.setFilter(this.filter);
-              decoder.setInstanceId(instanceInfo.instanceId());
-              decoder.setNumInstances(instanceInfo.numFilterInstances());
-              decoder.setChannelName(channelName);
-              decoder.setAttributes(decoderInfo.attributes());
+              decoder.channelReceiver(receiver);
+              decoder.filter(this.filter);
+              decoder.instanceId(instanceInfo.instanceId());
+              decoder.numFilterInstances(instanceInfo.numFilterInstances());
+              decoder.channelName(channelName);
+              decoder.attributes(decoderInfo.attributes());
               this.inputStartingOrder.get(channelName).add(decoder);
               receiver = decoder; //update the top of the stack of channel receivers
            }
 
            ChannelDeliver deliver = (ChannelDeliver)Class.forName(inputChannelInfo.deliverInfo().className()).newInstance();
-           deliver.setChannelReceiver(receiver);
-           deliver.setFilter(this.filter);
-           deliver.setInstanceId(instanceInfo.instanceId());
-           deliver.setNumInstances(instanceInfo.numFilterInstances());
-           deliver.setChannelName(channelName);
-           deliver.setAttributes(inputChannelInfo.deliverInfo().attributes());
+           deliver.channelReceiver(receiver);
+           deliver.filter(this.filter);
+           deliver.instanceId(instanceInfo.instanceId());
+           deliver.numFilterInstances(instanceInfo.numFilterInstances());
+           deliver.channelName(channelName);
+           deliver.attributes(inputChannelInfo.deliverInfo().attributes());
            this.inputStartingOrder.get(channelName).add(deliver);
 
-           //TODO remove start/finish log
-           //deliver.start();
-           //deliver.finish();
            //each channel deliver of a filter has a distinct thread for its execution
            executors.put(channelName, new ExecutorThread<ChannelDeliver>(deliver, this.inputStartingOrder.get(channelName), this.latch));
         }
-        //TODO remove start/finish log
-        //filter.start();
-        //filter.finish();
-
-        //return executors;
     }
 }

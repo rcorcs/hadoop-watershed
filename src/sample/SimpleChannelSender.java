@@ -26,8 +26,8 @@ public class SimpleChannelSender extends ChannelSender<String>{
     public void start(){
         super.start();
         try{
-           out = new PrintWriter(new BufferedWriter(new FileWriter("/home/hadoop/rcor/yarn/channel-sender-"+getChannelName()+".out")));
-           out.println("Starting channel sender: "+getChannelName()+" instance "+getInstanceId());
+           out = new PrintWriter(new BufferedWriter(new FileWriter("/home/hadoop/rcor/yarn/channel-sender-"+channelName()+".out")));
+           out.println("Starting channel sender: "+channelName()+" instance "+instanceId());
            out.flush();
         }catch(IOException e){
            e.printStackTrace();
@@ -37,7 +37,7 @@ public class SimpleChannelSender extends ChannelSender<String>{
 	public void finish(){
         super.finish();
         //try{
-           out.println("Finishing channel sender: "+getChannelName()+" instance "+getInstanceId());
+           out.println("Finishing channel sender: "+channelName()+" instance "+instanceId());
            out.flush();
            out.close();
         /*}catch(IOException e){
