@@ -68,22 +68,22 @@ public class ModulePipeline implements Iterable<ModuleInfo> {
        if(this.files==null){
           this.files = new HashSet<String>();
           for(ModuleInfo moduleInfo: this.modulePipeline){
-             File file = moduleInfo.getFilterInfo().getFile();
+             File file = moduleInfo.filterInfo().file();
              if(file!=null) files.add(file.getPath());
-             for(String channelName: moduleInfo.getInputChannelInfo().keySet()){
-                ChannelInfo channelInfo = moduleInfo.getInputChannelInfo(channelName);
-                if(channelInfo.getSenderInfo()!=null){
-                   file = channelInfo.getSenderInfo().getFile();
+             for(String channelName: moduleInfo.inputChannels().keySet()){
+                ChannelInfo channelInfo = moduleInfo.inputChannelInfo(channelName);
+                if(channelInfo.senderInfo()!=null){
+                   file = channelInfo.senderInfo().file();
                    if(file!=null) files.add(file.getPath());
                 }
-                file = channelInfo.getDeliverInfo().getFile();
+                file = channelInfo.deliverInfo().file();
                 if(file!=null) files.add(file.getPath());
-                for(StubInfo stubInfo: channelInfo.getEncoderInfoStack()){
-                   file = stubInfo.getFile();
+                for(StubInfo stubInfo: channelInfo.encoderInfoStack()){
+                   file = stubInfo.file();
                   if(file!=null) files.add(file.getPath());
                 }
-                for(StubInfo stubInfo: channelInfo.getDecoderInfoStack()){
-                   file = stubInfo.getFile();
+                for(StubInfo stubInfo: channelInfo.decoderInfoStack()){
+                   file = stubInfo.file();
                    if(file!=null) files.add(file.getPath());
                 }
              }
@@ -100,46 +100,46 @@ public class ModulePipeline implements Iterable<ModuleInfo> {
        Map<String, List<String>> outputs = new HashMap<String, List<String>>();
 
        for(ModuleInfo moduleInfo: this.modulePipeline){
-          modules.put(moduleInfo.getFilterInfo().getName(), moduleInfo);
-          instances.put(moduleInfo.getFilterInfo().getName(), new InstanceInfo.Builder(moduleInfo.getFilterInfo(), moduleInfo.getInstances()));
-          for(String inputChannel: moduleInfo.getInputChannelInfo().keySet()){
+          modules.put(moduleInfo.filterInfo().name(), moduleInfo);
+          instances.put(moduleInfo.filterInfo().name(), new InstanceInfo.Builder(moduleInfo.filterInfo(), moduleInfo.numFilterInstances()));
+          for(String inputChannel: moduleInfo.inputChannels().keySet()){
              if(!inputs.keySet().contains(inputChannel)){
                 inputs.put(inputChannel, new ArrayList<String>());
              }
-             inputs.get(inputChannel).add(moduleInfo.getFilterInfo().getName());
+             inputs.get(inputChannel).add(moduleInfo.filterInfo().name());
              //setup
-             StubInfo deliverInfo = moduleInfo.getInputChannelInfo(inputChannel).getDeliverInfo();
-             Deque<StubInfo> decoderInfoStack = moduleInfo.getInputChannelInfo(inputChannel).getDecoderInfoStack();
-             instances.get(moduleInfo.getFilterInfo().getName()).addInput(inputChannel, deliverInfo, decoderInfoStack);
+             StubInfo deliverInfo = moduleInfo.inputChannelInfo(inputChannel).deliverInfo();
+             Deque<StubInfo> decoderInfoStack = moduleInfo.inputChannelInfo(inputChannel).decoderInfoStack();
+             instances.get(moduleInfo.filterInfo().name()).addInput(inputChannel, deliverInfo, decoderInfoStack);
           }
-          for(String outputChannel: moduleInfo.getOutputChannelInfo().keySet()){
+          for(String outputChannel: moduleInfo.outputChannels().keySet()){
              if(!outputs.keySet().contains(outputChannel)){
                 outputs.put(outputChannel, new ArrayList<String>());
              }
-             outputs.get(outputChannel).add(moduleInfo.getFilterInfo().getName());
+             outputs.get(outputChannel).add(moduleInfo.filterInfo().name());
           }
        }
 
        for(ModuleInfo moduleInfo: this.modulePipeline){
           //for each filter, bind input channels with producers
-          for(String inputChannel: moduleInfo.getInputChannelInfo().keySet()){
+          for(String inputChannel: moduleInfo.inputChannels().keySet()){
              if(outputs.keySet().contains(inputChannel)){
                 for(String producerName: outputs.get(inputChannel)){
-                   StubInfo senderInfo = moduleInfo.getInputChannelInfo(inputChannel).getSenderInfo();
-                   Deque<StubInfo> encoderInfoStack = moduleInfo.getInputChannelInfo(inputChannel).getEncoderInfoStack();
-                   instances.get(producerName).addOutput(inputChannel, moduleInfo.getFilterInfo().getName(), moduleInfo.getInstances(), senderInfo, encoderInfoStack);
+                   StubInfo senderInfo = moduleInfo.inputChannelInfo(inputChannel).senderInfo();
+                   Deque<StubInfo> encoderInfoStack = moduleInfo.inputChannelInfo(inputChannel).encoderInfoStack();
+                   instances.get(producerName).addOutput(inputChannel, moduleInfo.filterInfo().name(), moduleInfo.numFilterInstances(), senderInfo, encoderInfoStack);
                 }
              }
           }
 
           //for each filter, bind output channels with consumers
           /*
-          for(String outputChannel: moduleInfo.getOutputChannelInfo().keySet()){
+          for(String outputChannel: moduleInfo.outputChannels().keySet()){
              if(inputs.keySet().contains(outputChannel)){
                 for(String consumerName: inputs.get(outputChannel)){
-                   StubInfo senderInfo = modules.get(consumerName).getInputChannelInfo(outputChannel).getSenderInfo();
-                   Deque<StubInfo> encoderInfoStack = modules.get(consumerName).getInputChannelInfo(outputChannel).getEncoderInfoStack();
-                   instances.get(moduleInfo.getFilterInfo().getName()).addOutput(outputChannel, consumerName, modules.get(consumerName).getInstances(), senderInfo, encoderInfoStack);
+                   StubInfo senderInfo = modules.get(consumerName).inputChannelInfo(outputChannel).senderInfo();
+                   Deque<StubInfo> encoderInfoStack = modules.get(consumerName).inputChannelInfo(outputChannel).encoderInfoStack();
+                   instances.get(moduleInfo.filterInfo().name()).addOutput(outputChannel, consumerName, modules.get(consumerName).numFilterInstances(), senderInfo, encoderInfoStack);
                 }
              }
           }

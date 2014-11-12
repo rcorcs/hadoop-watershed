@@ -188,38 +188,7 @@ public class Client {
 
     LOG.info("Collecting files to upload");
 	fs.mkdirs(new Path("hdfs:///hws/apps/"+appId.toString()));
-	/*
-    Map<String, File> files = new HashMap<String, File>();
-    ModuleInfo []modulePipeline = null;
-	if(xmlFileNames!=null){
-       modulePipeline = new ModuleInfo[xmlFileNames.length];
-       for(int i = 0; i<xmlFileNames.length; ++i){
-          ModuleInfo moduleInfo = ModuleInfo.loadFromXMLFile(xmlFileNames[i]);
-          modulePipeline[i] = moduleInfo;
-
-          File file = moduleInfo.getFilterInfo().getFile();
-          if(file!=null) files.put(file.getPath(), file);
-          for(String channelName: moduleInfo.getInputChannelInfo().keySet()){
-             ChannelInfo channelInfo = moduleInfo.getInputChannelInfo(channelName);
-             if(channelInfo.getSenderInfo()!=null){
-                file = channelInfo.getSenderInfo().getFile();
-                if(file!=null) files.put(file.getPath(), file);
-             }
-             file = channelInfo.getDeliverInfo().getFile();
-             if(file!=null) files.put(file.getPath(), file);
-             for(StubInfo stubInfo: channelInfo.getEncoderInfoStack()){
-                file = stubInfo.getFile();
-                if(file!=null) files.put(file.getPath(), file);
-             }
-             for(StubInfo stubInfo: channelInfo.getDecoderInfoStack()){
-                file = stubInfo.getFile();
-                if(file!=null) files.put(file.getPath(), file);
-             }
-          }
-       }
-    }
-    */
- 
+	
     ModulePipeline modulePipeline = ModulePipeline.fromXMLFiles(xmlFileNames);
     LOG.info("Uploading files to HDFS");
     for(String path: modulePipeline.files()){

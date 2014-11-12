@@ -73,14 +73,13 @@ public class ModuleInfo {
 					//Logger.info("file: "+file.getPath());
 				}
 				stubInfo = new StubInfo(eElement.getAttribute("class"), file);
-				//stubInfo.setFileName(eElement.getAttribute("file"));
-				System.out.println("Stub: "+stubInfo.getClassName()+" "+fileName);
+				System.out.println("Stub: "+stubInfo.className()+" "+fileName);
 				NodeList attrList = eElement.getElementsByTagName("attr");
 				for(int k = 0; k < attrList.getLength(); k++){
 					nNode = attrList.item(k);
 					if(nNode.getNodeType() == Node.ELEMENT_NODE){
 						eElement = (Element)nNode;
-						stubInfo.setAttribute(eElement.getAttribute("name"), eElement.getAttribute("value"));
+						stubInfo.attribute(eElement.getAttribute("name"), eElement.getAttribute("value"));
 					}
 				}
 			}
@@ -103,14 +102,13 @@ public class ModuleInfo {
 					//Logger.info("file: "+file.getPath());
 				}
 				stubInfo = new StubInfo(element.getAttribute("class"), file);
-				//stubInfo.setFileName(eElement.getAttribute("file"));
-				System.out.println("Stub: "+stubInfo.getClassName()+" "+fileName);
+				System.out.println("Stub: "+stubInfo.className()+" "+fileName);
 				NodeList attrList = element.getElementsByTagName("attr");
 				for(int k = 0; k < attrList.getLength(); k++){
 					Node nNode = attrList.item(k);
 					if(nNode.getNodeType() == Node.ELEMENT_NODE){
 						Element eElement = (Element)nNode;
-						stubInfo.setAttribute(eElement.getAttribute("name"), eElement.getAttribute("value"));
+						stubInfo.attribute(eElement.getAttribute("name"), eElement.getAttribute("value"));
 					}
 				}
 		return stubInfo;
@@ -122,8 +120,8 @@ public class ModuleInfo {
 		ChannelInfo channel = new ChannelInfo(element.getAttribute("name"));
 		StubInfo deliverInfo = readStubInfo(element, "deliver");
 		StubInfo senderInfo = readStubInfo(element, "sender");
-		channel.setDeliverInfo(deliverInfo);
-		channel.setSenderInfo(senderInfo);
+		channel.deliverInfo(deliverInfo);
+		channel.senderInfo(senderInfo);
 
 		NodeList temp1 = element.getElementsByTagName("encoders");
 		System.out.println("temp1: "+temp1.getLength());
@@ -138,7 +136,7 @@ public class ModuleInfo {
 					if(node.getNodeType() == Node.ELEMENT_NODE){
 						StubInfo encoderInfo = readInStubInfo(((Element)node), "encoder");
 						if(encoderInfo!=null){
-							System.out.println("**encoder: "+encoderInfo.getClassName());
+							System.out.println("**encoder: "+encoderInfo.className());
 							channel.pushEncoderInfo(encoderInfo);
 						}
 					}
@@ -159,7 +157,7 @@ public class ModuleInfo {
 					if(node.getNodeType() == Node.ELEMENT_NODE){
 						StubInfo decoderInfo = readInStubInfo(((Element)node), "decoder");
 						if(decoderInfo!=null){
-							System.out.println("**decoder: "+decoderInfo.getClassName());
+							System.out.println("**decoder: "+decoderInfo.className());
 							channel.pushDecoderInfo(decoderInfo);
 						}
 					}
@@ -194,9 +192,8 @@ public class ModuleInfo {
 			file = new File(filterFileName);
 			//Logger.info("file: "+file.getPath());
 		}
-		module.setInstances( Integer.parseInt(doc.getDocumentElement().getAttribute("instances")) );
+		module.numFilterInstances( Integer.parseInt(doc.getDocumentElement().getAttribute("instances")) );
 		filter = new FilterInfo(doc.getDocumentElement().getAttribute("name"), doc.getDocumentElement().getAttribute("class"), file);
-		//filter.setFileName(doc.getDocumentElement().getAttribute("file"));
 
 		Node nNode = null;
 		Element eElement = null;
@@ -208,10 +205,10 @@ public class ModuleInfo {
 			nNode = nList.item(i);
 			if(nNode.getNodeType() == Node.ELEMENT_NODE){
 				eElement = (Element)nNode;
-				filter.setAttribute(eElement.getAttribute("name"), eElement.getAttribute("value"));
+				filter.attribute(eElement.getAttribute("name"), eElement.getAttribute("value"));
 			}
 		}
-		module.setFilterInfo(filter);
+		module.filterInfo(filter);
 
 		nList = doc.getElementsByTagName("output");
 		for(int i = 0; i < nList.getLength(); i++){
@@ -223,9 +220,9 @@ public class ModuleInfo {
 					nNode = channelList.item(j);
 					if(nNode.getNodeType() == Node.ELEMENT_NODE){
 						ChannelInfo channel = readChannelInfo((Element)nNode);
-						if(channel.getDeliverInfo()!=null) throw new ParserConfigurationException("Output channel cannot have a deliver stub.");
-						System.out.println("adding output channel: "+channel.getName());
-						module.setOutputChannelInfo(channel.getName(), channel);
+						if(channel.deliverInfo()!=null) throw new ParserConfigurationException("Output channel cannot have a deliver stub.");
+						System.out.println("adding output channel: "+channel.name());
+						module.addOutputChannelInfo(channel);
 					}
 				}
 			}
@@ -241,9 +238,9 @@ public class ModuleInfo {
 					nNode = channelList.item(j);
 					if(nNode.getNodeType() == Node.ELEMENT_NODE){
 						ChannelInfo channel = readChannelInfo((Element)nNode);
-						if(channel.getDeliverInfo()==null) throw new ParserConfigurationException("Input channel needs a deliver stub.");
-						System.out.println("adding input channel: "+channel.getName());
-						module.setInputChannelInfo(channel.getName(), channel);
+						if(channel.deliverInfo()==null) throw new ParserConfigurationException("Input channel needs a deliver stub.");
+						System.out.println("adding input channel: "+channel.name());
+						module.addInputChannelInfo(channel);
 					}
 				}
 			}
@@ -252,46 +249,46 @@ public class ModuleInfo {
 		return module;
 	}
 
-	public void setInstances(int instances){
+	void numFilterInstances(int instances){
 		this.instances = instances;
 	}
 
-	public int getInstances(){
+	public int numFilterInstances(){
 		return this.instances;
 	}
 	
-	public void setInputChannelInfo(String name, ChannelInfo inChannelInfo){
-		this.inChannelInfo.put(name, inChannelInfo);
+	void addInputChannelInfo(ChannelInfo channelInfo){
+		this.inChannelInfo.put(channelInfo.name(), channelInfo);
 	}
 
-	public ChannelInfo getInputChannelInfo(String name){
+	public ChannelInfo inputChannelInfo(String name){
 		return this.inChannelInfo.get(name);
 	}
 
-	public Map<String, ChannelInfo> getInputChannelInfo(){
+	public Map<String, ChannelInfo> inputChannels(){
 		return this.inChannelInfo;
 	}
 
-	public void setOutputChannelInfo(String name, ChannelInfo outChannelInfo){
-		this.outChannelInfo.put(name, outChannelInfo);
+	void addOutputChannelInfo(ChannelInfo channelInfo){
+		this.outChannelInfo.put(channelInfo.name(), channelInfo);
 	}
 
-	public ChannelInfo getOutputChannelInfo(String name){
+	public ChannelInfo outputChannelInfo(String name){
 		//Logger.info("GETING: "+name);
 		ChannelInfo tmp = this.outChannelInfo.get(name);
 		//Logger.info("Channel: "+Json.dumps(tmp));
 		return tmp;
 	}
 
-	public Map<String, ChannelInfo> getOutputChannelInfo(){
+	public Map<String, ChannelInfo> outputChannels(){
 		return this.outChannelInfo;
 	}
 
-	public void setFilterInfo(FilterInfo filterInfo){
+	void filterInfo(FilterInfo filterInfo){
 		this.filterInfo = filterInfo;
 	}
 
-	public FilterInfo getFilterInfo(){
+	public FilterInfo filterInfo(){
 		return this.filterInfo;
 	}
 }

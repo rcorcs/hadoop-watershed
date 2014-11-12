@@ -122,11 +122,11 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
                out.flush();
                //dado o container, escolher a instancia que tem dado de entrada mais perto daquele container
                InstanceInfo instanceInfo = null;
-               if(instances.get(modulePipeline.get(currentModuleIndex).getFilterInfo().getName()).instancesBuilt()>=modulePipeline.get(currentModuleIndex).getInstances()){
+               if(instances.get(modulePipeline.get(currentModuleIndex).filterInfo().name()).instancesBuilt()>=modulePipeline.get(currentModuleIndex).numFilterInstances()){
                   currentModuleIndex++;
                }
                if(currentModuleIndex<modulePipeline.size()){
-                  instanceInfo = instances.get(modulePipeline.get(currentModuleIndex).getFilterInfo().getName()).build();
+                  instanceInfo = instances.get(modulePipeline.get(currentModuleIndex).filterInfo().name()).build();
                }else break;
 
                 out.println("Encoding instance info to json-base64");
@@ -190,8 +190,8 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
                 fs.close();
                 System.out.println("[AM] Launching container " + container.getId());
                 nmClient.startContainer(container, ctx);
-                if(instances.get(modulePipeline.get(currentModuleIndex).getFilterInfo().getName()).instancesBuilt()>=modulePipeline.get(currentModuleIndex).getInstances()){
-                   zk.createPersistent("/hadoop-watershed/"+this.appIdStr+"/"+instanceInfo.filterInfo().getName()+"/start", "");
+                if(instances.get(modulePipeline.get(currentModuleIndex).filterInfo().name()).instancesBuilt()>=modulePipeline.get(currentModuleIndex).numFilterInstances()){
+                   zk.createPersistent("/hadoop-watershed/"+this.appIdStr+"/"+instanceInfo.filterInfo().name()+"/start", "");
                 }
             } catch (Exception e) {
                 System.err.println("[AM] Error launching container " + container.getId() + " " + e);
@@ -317,12 +317,12 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
 
         // Make container requests to ResourceManager'''''''''''''''''''''				'''''''''''''''''''''''''''''''
         for(ModuleInfo moduleInfo: this.modulePipeline){ //create containers for each instance of each module
-           zk.createPersistent("/hadoop-watershed/"+this.appIdStr+"/"+moduleInfo.getFilterInfo().getName(), "");
-           for(int i = 0; i<moduleInfo.getInstances(); i++){
+           zk.createPersistent("/hadoop-watershed/"+this.appIdStr+"/"+moduleInfo.filterInfo().name(), "");
+           for(int i = 0; i<moduleInfo.numFilterInstances(); i++){
               this.numContainersToWaitFor++;
 
               ContainerRequest containerAsk = new ContainerRequest(capability, null, null, priority);
-              System.out.println("[AM] Making res-req for " +moduleInfo.getFilterInfo().getName()+" "+ i);
+              System.out.println("[AM] Making res-req for " +moduleInfo.filterInfo().name()+" "+ i);
               rmClient.addContainerRequest(containerAsk);
            }
         }

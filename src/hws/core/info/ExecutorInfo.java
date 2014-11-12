@@ -39,44 +39,27 @@ public class ExecutorInfo {
 		this.file = file;
 	}
 	
-	public void setName(String name){
+	void name(String name){
 		this.name = name;
 	}
 	
-	public String getName(){
+	public String name(){
 		return this.name;
 	}
 	
-	public void setClassName(String className){
+	void className(String className){
 		this.className = className;
 	}
 	
-	public String getClassName(){
+	public String className(){
 		return this.className;
 	}
 
-	/*
-	public void setFileBase64(String fileBase64){
-		this.fileBase64 = fileBase64;
-	}
-	
-	public void writeFile(String fileName) throws IOException {
-		File file = new File(fileName);
-		File parent = file.getParentFile();
-		if(parent!=null) FileUtils.forceMkdir( parent );
-		FileUtils.writeByteArrayToFile(file, Base64.decodeBase64(getFileBase64()));
-	}
-
-	public String getFileBase64(){
-		return this.fileBase64;
-	}
-	*/
-
-	public File getFile(){
+	public File file(){
 		return this.file;
 	}
 
-	public void setFile(File file){
+	void file(File file){
 		this.file = file;
 	}
 }

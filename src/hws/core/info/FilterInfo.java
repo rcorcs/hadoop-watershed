@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.io.File;
 
 import java.util.Map;
-//import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 
@@ -30,19 +29,19 @@ public class FilterInfo extends ExecutorInfo {
 
 	public FilterInfo(String name, String className, File file) throws IOException{
 		super(className, file);
-		setName(name);
+		name(name);
 		this.attrs = new ConcurrentHashMap<String, String>();
 	}
-
-	public void setAttribute(String key, String value){
+    
+	void attribute(String key, String value){
 		this.attrs.put(key, value);
 	}
-
-	public String getAttribute(String key){
+    
+	String attribute(String key){
 		return this.attrs.get(key);
 	}
 	
-	public Map<String,String> getAttributes(){
+	public Map<String,String> attributes(){
 		return this.attrs;
 	}
 }

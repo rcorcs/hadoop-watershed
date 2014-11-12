@@ -164,7 +164,7 @@ public class InstanceDriver {
         ZkClient zk = new ZkClient(zkServers[0]); //TODO select a ZooKeeper server
 
         //wait for a start command from the ApplicationMaster via ZooKeeper
-        String znode = "/hadoop-watershed/"+appIdStr+"/"+instanceInfo.filterInfo().getName()+"/start";
+        String znode = "/hadoop-watershed/"+appIdStr+"/"+instanceInfo.filterInfo().name()+"/start";
         out.println("znode: "+znode);
         out.flush();
         while(!zk.waitUntilExists(znode,TimeUnit.MILLISECONDS, 500)){
@@ -204,7 +204,7 @@ public class InstanceDriver {
         }
     }
 
-    private void finishExecutors(ExecutorService serverExecutor){
+    private void finishExecutors(){
         ListIterator<DefaultExecutor> li = this.outputStartingOrder.listIterator(this.outputStartingOrder.size());
         while(li.hasPrevious()){
             DefaultExecutor defaultExecutor = li.previous();
@@ -219,20 +219,20 @@ public class InstanceDriver {
         this.executors = new ConcurrentHashMap<String, ExecutorThread<ChannelDeliver>>();
 
         //loading filter instance from the instance info specification
-        this.filter = (Filter)Class.forName(instanceInfo.filterInfo().getClassName()).newInstance();
-        this.filter.setName(instanceInfo.filterInfo().getName());
+        this.filter = (Filter)Class.forName(instanceInfo.filterInfo().className()).newInstance();
+        this.filter.setName(instanceInfo.filterInfo().name());
         this.filter.setInstanceId(instanceInfo.instanceId());
-        this.filter.setAttributes(instanceInfo.filterInfo().getAttributes());
+        this.filter.setAttributes(instanceInfo.filterInfo().attributes());
 
         //loading output channels
         this.filter.setOutputChannels(instanceInfo.outputChannels().keySet());
         for(String channelName: instanceInfo.outputChannels().keySet()){
            for(OutputChannelInfo outputChannelInfo: instanceInfo.outputChannels().get(channelName)){
-              ChannelSender sender = (ChannelSender)Class.forName(outputChannelInfo.senderInfo().getClassName()).newInstance();
+              ChannelSender sender = (ChannelSender)Class.forName(outputChannelInfo.senderInfo().className()).newInstance();
               sender.setInstanceId(instanceInfo.instanceId());
               sender.setChannelName(channelName);
-              sender.setAttributes(outputChannelInfo.senderInfo().getAttributes());
-              sender.setSourceFilterName(instanceInfo.filterInfo().getName()); //TODO producerName
+              sender.setAttributes(outputChannelInfo.senderInfo().attributes());
+              sender.setSourceFilterName(instanceInfo.filterInfo().name()); //TODO producerName
               sender.setDestinationFilterName(outputChannelInfo.consumerName()); //TODO consumerName
               sender.setDestinationInstances(outputChannelInfo.numConsumerInstances()); //TODO numConsumerInstances
               this.outputStartingOrder.add(sender);
@@ -243,12 +243,12 @@ public class InstanceDriver {
               //StubInfo encoderInfo = null;
               //while( (encoderInfo = outputChannelInfo.encoderInfoStack().popEncoderInfo())!=null ){
               for(StubInfo encoderInfo: outputChannelInfo.encoderInfoStack()){
-                 ChannelEncoder encoder = (ChannelEncoder)Class.forName(encoderInfo.getClassName()).newInstance();
+                 ChannelEncoder encoder = (ChannelEncoder)Class.forName(encoderInfo.className()).newInstance();
                  encoder.setChannelSender(sender); //bind the encoder to the stack of senders
 			     encoder.setInstanceId(instanceInfo.instanceId());
                  encoder.setChannelName(channelName);
-                 encoder.setAttributes(encoderInfo.getAttributes());
-                 encoder.setSourceFilterName(instanceInfo.filterInfo().getName());
+                 encoder.setAttributes(encoderInfo.attributes());
+                 encoder.setSourceFilterName(instanceInfo.filterInfo().name());
                  encoder.setDestinationFilterName(outputChannelInfo.consumerName());
                  encoder.setDestinationInstances(outputChannelInfo.numConsumerInstances());
                  this.outputStartingOrder.add(encoder);
@@ -271,24 +271,24 @@ public class InstanceDriver {
            //StubInfo decoderInfo = null;
            //while( (encoderInfo = inputChannelInfo.decoderInfoStack().popDecoderInfo())!=null ){
            for(StubInfo decoderInfo: inputChannelInfo.decoderInfoStack()){
-              ChannelDecoder decoder = (ChannelDecoder)Class.forName(decoderInfo.getClassName()).newInstance();
+              ChannelDecoder decoder = (ChannelDecoder)Class.forName(decoderInfo.className()).newInstance();
               decoder.setChannelReceiver(receiver);
               decoder.setFilter(this.filter);
               decoder.setInstanceId(instanceInfo.instanceId());
               decoder.setNumInstances(instanceInfo.numFilterInstances());
               decoder.setChannelName(channelName);
-              decoder.setAttributes(decoderInfo.getAttributes());
+              decoder.setAttributes(decoderInfo.attributes());
               this.inputStartingOrder.get(channelName).add(decoder);
               receiver = decoder; //update the top of the stack of channel receivers
            }
 
-           ChannelDeliver deliver = (ChannelDeliver)Class.forName(inputChannelInfo.deliverInfo().getClassName()).newInstance();
+           ChannelDeliver deliver = (ChannelDeliver)Class.forName(inputChannelInfo.deliverInfo().className()).newInstance();
            deliver.setChannelReceiver(receiver);
            deliver.setFilter(this.filter);
            deliver.setInstanceId(instanceInfo.instanceId());
            deliver.setNumInstances(instanceInfo.numFilterInstances());
            deliver.setChannelName(channelName);
-           deliver.setAttributes(inputChannelInfo.deliverInfo().getAttributes());
+           deliver.setAttributes(inputChannelInfo.deliverInfo().attributes());
            this.inputStartingOrder.get(channelName).add(deliver);
 
            //TODO remove start/finish log

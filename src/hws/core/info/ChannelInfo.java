@@ -36,35 +36,35 @@ public class ChannelInfo {
 		this.deliverInfo = null;
 	}
 
-	public void setName(String name){
+	void name(String name){
 		this.name = name;
 	}
 
-	public String getName(){
+	public String name(){
 		return this.name;
 	}
 	
-	public void setSenderInfo(StubInfo senderInfo){
+	void senderInfo(StubInfo senderInfo){
 		this.senderInfo = senderInfo;
 	}
 
-	public StubInfo getSenderInfo(){
+	public StubInfo senderInfo(){
 		return this.senderInfo;
 	}
 
-	public void setDeliverInfo(StubInfo deliverInfo){
+	void deliverInfo(StubInfo deliverInfo){
 		this.deliverInfo = deliverInfo;
 	}
 
-	public StubInfo getDeliverInfo(){
+	public StubInfo deliverInfo(){
 		return this.deliverInfo;
 	}
 
-	public Deque<StubInfo> getEncoderInfoStack(){
+	public Deque<StubInfo> encoderInfoStack(){
 		return this.encoderInfoStack;
 	}
 
-	public Deque<StubInfo> getDecoderInfoStack(){
+	public Deque<StubInfo> decoderInfoStack(){
 		return this.decoderInfoStack;
 	}
 
