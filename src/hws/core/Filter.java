@@ -34,13 +34,7 @@ public abstract class Filter<InputType, OutputType> extends DefaultExecutor impl
 
 	private Set<String> outputChannels;
 	private Map<String, ChannelOutputSet<OutputType>> outputSets;
-	/*
-	public Filter(){
-		this.outputSets = new ConcurrentHashMap<String, ChannelOutputSet<OutputType>>();
-	}
-	*/
-	//public abstract void start();
-	//public abstract void finish();
+
 	public abstract void process(String src, InputType data);
 
 	public void receive(String src, InputType data){
@@ -104,7 +98,7 @@ public abstract class Filter<InputType, OutputType> extends DefaultExecutor impl
 		//TODO: halt (name,instance)
 	}
 
-	public void halt(String channelName){
+	void halt(String channelName){
 		if(inChannelsHalted.keySet().contains(channelName)){
 			inChannelsHalted.put(channelName, Boolean.TRUE);
 

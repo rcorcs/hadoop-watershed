@@ -40,7 +40,7 @@ public abstract class ChannelSender<DataType> extends DefaultExecutor {
 		return this.instanceId;
 	}
 
-	public void channelName(String channelName){
+	void channelName(String channelName){
 		this.channelName = channelName;
 	}
 

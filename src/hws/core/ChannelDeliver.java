@@ -54,7 +54,7 @@ public abstract class ChannelDeliver<DataType> extends DefaultExecutor {
 		return this.nInstances;
 	}
 
-	public void channelName(String channelName){
+	void channelName(String channelName){
 		this.channelName = channelName;
 	}
 
@@ -62,8 +62,8 @@ public abstract class ChannelDeliver<DataType> extends DefaultExecutor {
 		return this.channelName;
 	}
 
-	public void deliver(String src, DataType data){
-		channelReceiver().receive(src, data);
+	public void deliver(DataType data){
+		channelReceiver().receive(channelName(), data);
 	}
 
 	void filter(Filter filter){
