@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<filter name="reducer" file="sample.jar" class="sample.SimpleFilter" instances="1">
+	<input>
+		<channel name="net">
+			<sender class="sample.SimpleChannelSender" file="sample.jar" />
+			<deliver class="sample.SimpleChannelDeliver" file="sample.jar" />
+		</channel>
+	</input>
+	<output>
+		<channel name="writer">
+			<sender class="sample.SimpleChannelSender" file="sample.jar" />
+		</channel>
+	</output>
+</filter>
+

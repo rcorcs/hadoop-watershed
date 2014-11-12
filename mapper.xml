@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<filter name="mapper" file="sample.jar" class="sample.SimpleFilter" instances="1">
+	<input>
+		<channel name="reader">
+			<deliver class="sample.SimpleChannelDeliver" file="sample.jar">
+				<attr name="file" value="/home/hadoop/rcor/file13.txt"/>
+			</deliver>
+		</channel>
+	</input>
+	<output>
+		<channel name="net">
+		</channel>
+	</output>
+</filter>
+
