@@ -28,7 +28,7 @@ The batch processing model incorporated by Hadoop Watershed is based on the Anth
 ## References
 ### Framework
 - [Watershed reengineering: making streams programmable](http://homepages.dcc.ufmg.br/~rcor/wpba14.pdf)
-- [Watershed: A High Performance Distributed Stream Processing System](https://14b121fd-a-62cb3a1a-s-sites.googlegroups.com/site/rsilvaoliveira/home/2011-SBAC_PAD-watershed.pdf?attachauth=ANoY7crlFZFt2eyV6ER6ENyFNhlnaQ1mtA_wP660LrjkOF2CKBpzwtrL3o6VL8k510nb3f3MuzuEClRe0IlPVGK4wh0CgsAbXvf4rz7rGssUUK4fnNwcWwD7LtzsLvpGiH03WLKce1EjUoJdnWgYG2nZW31G9DQ8fCkzqaEQjQPsobfONPrrQ0ihT4c-pCNGMpuloHVhm5UCPRf5K-qcHq6sYKSE8n6GtDF4ICHxQDmogEcJ1WPIbjo%3D&attredirects=0)
+- [Watershed: A High Performance Distributed Stream Processing System](https://sites.google.com/site/rsilvaoliveira/home/2011-SBAC_PAD-watershed.pdf)
 - [Anthill: A Scalable Run-Time Environment for Data Mining Applications](http://homepages.dcc.ufmg.br/~dorgival/artigos/sbac2005.pdf)
 - [AnthillSched: A Scheduling Strategy for Irregular and Iterative I/O-Intensive Parallel Jobs](http://homepages.dcc.ufmg.br/~pcalais/papers/JSSPP.pdf)
 
