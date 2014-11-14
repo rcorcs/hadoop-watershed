@@ -28,8 +28,9 @@ import java.util.Deque;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 
 import org.I0Itec.zkclient.ZkClient;
 import org.I0Itec.zkclient.IZkChildListener;
@@ -328,10 +329,11 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
 
     }
 
-    public IZkChildListener createFinishListener(final String filterName, final int numFilterInstances){
+    public IZkChildListener createFinishListener(final String filterName, final int numFilterInstances, final CountDownLatch doneLatch){
        IZkChildListener childListener = new IZkChildListener(){
            private String _filterName = filterName;
            private int _numFilterInstances = numFilterInstances;
+           private CountDownLatch _doneLatch = doneLatch;
            public void handleChildChange(String parentPath, List<String> currentChilds) throws Exception{
                if(currentChilds.size()==_numFilterInstances){
                   try{
@@ -342,6 +344,7 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
                      }
                      out.println();
                      out.close();
+                     _doneLatch.countDown();
                   }catch(Exception e){}
                }
            }
@@ -370,11 +373,12 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
         capability.setMemory(128);
         capability.setVirtualCores(1);
 
+        final CountDownLatch doneLatch = new CountDownLatch(this.modulePipeline.size());
         // Make container requests to ResourceManager
         for(ModuleInfo moduleInfo: this.modulePipeline){ //create containers for each instance of each module
            zk.createPersistent("/hadoop-watershed/"+this.appIdStr+"/"+moduleInfo.filterInfo().name(), "");
            zk.createPersistent("/hadoop-watershed/"+this.appIdStr+"/"+moduleInfo.filterInfo().name()+"/finish", "");
-           zk.subscribeChildChanges("/hadoop-watershed/"+this.appIdStr+"/"+moduleInfo.filterInfo().name()+"/finish", createFinishListener(moduleInfo.filterInfo().name(), moduleInfo.numFilterInstances()));
+           zk.subscribeChildChanges("/hadoop-watershed/"+this.appIdStr+"/"+moduleInfo.filterInfo().name()+"/finish", createFinishListener(moduleInfo.filterInfo().name(), moduleInfo.numFilterInstances(), doneLatch));
            for(int i = 0; i<moduleInfo.numFilterInstances(); i++){
               this.numContainersToWaitFor++;
               ContainerRequest containerAsk = new ContainerRequest(capability, null, null, priority);
@@ -391,10 +395,14 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
         //TODO "send" the start signal via ZooKeeper
 
         System.out.println("[AM] waiting for containers to finish");
-        while (!doneWithContainers()) {
+        /*while (!doneWithContainers()) {
             Thread.sleep(100);
+        }*/
+        try {
+           doneLatch.await(); //await the input threads to finish
+        }catch(InterruptedException e){
+           e.printStackTrace();
         }
-
         System.out.println("[AM] unregisterApplicationMaster 0");
         // Un-register with ResourceManager
         rmClient.unregisterApplicationMaster(
