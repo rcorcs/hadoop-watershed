@@ -336,6 +336,7 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
            private CountDownLatch _doneLatch = doneLatch;
            public void handleChildChange(String parentPath, List<String> currentChilds) throws Exception{
                if(currentChilds.size()==_numFilterInstances){
+                  //TODO if all producers for a input port have halted, send a signal znode(/hadoop-watershed/appId/consumerFilter/halted/channelName) to all consumers
                   try{
                      PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter("/home/hadoop/rcor/yarn/finished-"+_filterName+".out")));
                      out.println(parentPath);
