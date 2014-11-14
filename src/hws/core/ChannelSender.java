@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public abstract class ChannelSender<DataType> extends DefaultExecutor {
 	private int instanceId;
-
+    private Shared shared;
 	private String channelName;
 	private String srcFilterName;
 	private String dstFilterName;
@@ -87,5 +87,13 @@ public abstract class ChannelSender<DataType> extends DefaultExecutor {
 	void attributes(Map<String, String> attrs){
 		this.attrs = attrs;
 	}
+
+    void shared(Shared shared){
+        this.shared = shared;
+    }
+
+    public Shared shared(){
+        return this.shared;
+    }
 
 }

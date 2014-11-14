@@ -27,4 +27,10 @@ public abstract class ChannelEncoder<InputType, OutputType> extends ChannelSende
 	void channelSender(ChannelSender<OutputType> sender){
 		this.sender = sender;
 	}
+
+    public void send(InputType data){
+        encode(data);
+    }
+
+    public abstract void encode(InputType data);    
 }

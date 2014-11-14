@@ -29,6 +29,7 @@ public abstract class ChannelDeliver<DataType> extends DefaultExecutor {
 	private Filter filter;
 
 	private Map<String, String> attrs;
+	private Shared shared;
 
 	public ChannelReceiver<DataType> channelReceiver(){
 		return this.receiver;
@@ -94,4 +95,14 @@ public abstract class ChannelDeliver<DataType> extends DefaultExecutor {
 	void attributes(Map<String, String> attrs){
 		this.attrs = attrs;
 	}
+
+
+    void shared(Shared shared){
+        this.shared = shared;
+    }
+
+    public Shared shared(){
+        return this.shared;
+    }
+
 }

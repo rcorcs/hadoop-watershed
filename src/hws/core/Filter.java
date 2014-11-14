@@ -34,6 +34,7 @@ public abstract class Filter<InputType, OutputType> extends DefaultExecutor impl
 
 	private Set<String> outputChannels;
 	private Map<String, ChannelOutputSet<OutputType>> outputSets;
+    //private Shared shared;
 
 	public abstract void process(String src, InputType data);
 
@@ -116,7 +117,15 @@ public abstract class Filter<InputType, OutputType> extends DefaultExecutor impl
 			}
 		}
 	}
+/*
+    void shared(Shared shared){
+        this.shared = shared;
+    }
 
+    public Shared shared(){
+        return this.shared;
+    }
+*/
 	public abstract void onChannelHalt(String channelName);
 
 	public abstract void onChannelsHalted();

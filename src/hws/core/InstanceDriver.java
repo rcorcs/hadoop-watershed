@@ -59,10 +59,15 @@ class ExecutorThread<ExecutorType extends DefaultExecutor>  extends Thread {
 	private ExecutorType executor;
     private List<DefaultExecutor> startingOrder;
     private CountDownLatch latch;
-	public ExecutorThread(ExecutorType executor, List<DefaultExecutor> startingOrder, CountDownLatch latch){
+    private ZkClient zk;
+    private String finishZnode;
+   
+	public ExecutorThread(ExecutorType executor, List<DefaultExecutor> startingOrder, CountDownLatch latch, ZkClient zk, String finishZnode){
 		this.executor = executor;
         this.startingOrder = startingOrder;
         this.latch = latch;
+        this.zk = zk;
+        this.finishZnode = finishZnode;
 	}
 
 	public void run(){
@@ -74,6 +79,7 @@ class ExecutorThread<ExecutorType extends DefaultExecutor>  extends Thread {
             DefaultExecutor defaultExecutor = li.previous();
             defaultExecutor.finish();
         }
+        zk.createPersistent(finishZnode, "");
         this.latch.countDown();
 		//this.executor.start();
 		//this.executor.finish();
@@ -150,27 +156,32 @@ public class InstanceDriver {
 
         this.latch = new CountDownLatch(instanceInfo.inputChannels().keySet().size());
 
+        ZkClient zk = new ZkClient(zkServers[0]); //TODO select a ZooKeeper server
+
         PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter("/home/hadoop/rcor/yarn/instance-driver.out")));
         out.println("Decoding instance info: "+instanceInfoBase64);
         out.flush();
         out.println("Instance info: "+instanceInfoJson);
         out.flush();
-        loadInstance(instanceInfo);
+        loadInstance(instanceInfo, zk, "/hadoop-watershed/"+appIdStr+"/");
         out.println("Load Instance "+instanceInfo.instanceId());
         out.flush();
 
         ExecutorService serverExecutor = Executors.newCachedThreadPool();
 
-        ZkClient zk = new ZkClient(zkServers[0]); //TODO select a ZooKeeper server
 
         //wait for a start command from the ApplicationMaster via ZooKeeper
         String znode = "/hadoop-watershed/"+appIdStr+"/"+instanceInfo.filterInfo().name()+"/start";
         out.println("znode: "+znode);
         out.flush();
+        zk.waitUntilExists(znode, TimeUnit.MILLISECONDS, 250);
+        out.println("Exists: "+zk.exists(znode));
+        out.flush();
+        /*
         while(!zk.waitUntilExists(znode,TimeUnit.MILLISECONDS, 500)){
            //out.println("TIMEOUT waiting for start znode: "+znode);
            //out.flush();
-        }
+        }*/
         //start and execute this instance
         out.println("Starting Instance");
         startExecutors(serverExecutor);
@@ -214,7 +225,7 @@ public class InstanceDriver {
 
     /**
     */
-    private void loadInstance(InstanceInfo instanceInfo) throws IOException, ClassNotFoundException, InstantiationException, IllegalAccessException {
+    private void loadInstance(InstanceInfo instanceInfo, ZkClient zk, String znodeBase) throws IOException, ClassNotFoundException, InstantiationException, IllegalAccessException {
         this.executors = new ConcurrentHashMap<String, ExecutorThread<ChannelDeliver>>();
 
         //loading filter instance from the instance info specification
@@ -222,6 +233,7 @@ public class InstanceDriver {
         this.filter.name(instanceInfo.filterInfo().name());
         this.filter.instanceId(instanceInfo.instanceId());
         this.filter.attributes(instanceInfo.filterInfo().attributes());
+        //this.filter.shared(new Shared(zk, znodeBase+instanceInfo.filterInfo().name()));
 
         //loading output channels
         this.filter.outputChannels(instanceInfo.outputChannels().keySet());
@@ -234,6 +246,7 @@ public class InstanceDriver {
               sender.producerName(instanceInfo.filterInfo().name());
               sender.consumerName(outputChannelInfo.consumerName());
               sender.numConsumerInstances(outputChannelInfo.numConsumerInstances());
+              sender.shared(new Shared(zk, znodeBase+outputChannelInfo.consumerName()+"/"+channelName));
               this.outputStartingOrder.add(sender);
 
               //StubInfo encoderInfo = null;
@@ -247,6 +260,7 @@ public class InstanceDriver {
                  encoder.producerName(instanceInfo.filterInfo().name());
                  encoder.consumerName(outputChannelInfo.consumerName());
                  encoder.numConsumerInstances(outputChannelInfo.numConsumerInstances());
+                 //encoder.shared(new Shared(zk, znodeBase+outputChannelInfo.consumerName()+"/"+channelName));
                  this.outputStartingOrder.add(encoder);
                  sender = encoder; //update the bottom of the stack of channel senders
               }
@@ -274,6 +288,7 @@ public class InstanceDriver {
               decoder.numFilterInstances(instanceInfo.numFilterInstances());
               decoder.channelName(channelName);
               decoder.attributes(decoderInfo.attributes());
+              //decoder.shared(new Shared(zk, znodeBase+instanceInfo.filterInfo().name()+"/"+channelName));
               this.inputStartingOrder.get(channelName).add(decoder);
               receiver = decoder; //update the top of the stack of channel receivers
            }
@@ -285,10 +300,11 @@ public class InstanceDriver {
            deliver.numFilterInstances(instanceInfo.numFilterInstances());
            deliver.channelName(channelName);
            deliver.attributes(inputChannelInfo.deliverInfo().attributes());
+           deliver.shared(new Shared(zk, znodeBase+instanceInfo.filterInfo().name()+"/"+channelName));
            this.inputStartingOrder.get(channelName).add(deliver);
 
            //each channel deliver of a filter has a distinct thread for its execution
-           executors.put(channelName, new ExecutorThread<ChannelDeliver>(deliver, this.inputStartingOrder.get(channelName), this.latch));
+           executors.put(channelName, new ExecutorThread<ChannelDeliver>(deliver, this.inputStartingOrder.get(channelName), this.latch, zk, znodeBase+instanceInfo.filterInfo().name()+"/finish/"+instanceInfo.instanceId() ));
         }
     }
 }

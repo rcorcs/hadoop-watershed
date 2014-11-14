@@ -268,13 +268,13 @@ public class Client {
       appState = appReport.getYarnApplicationState();
     }
 
-    //zk.deleteRecursive("/hadoop-watershed/"+appId.toString());
-
     System.out.println(
         "Application " + appId + " finished with" +
     		" state " + appState + 
     		" at " + appReport.getFinishTime());
 
+    System.out.println("deleting "+appId.toString()+" znode");
+    //TODO zk.deleteRecursive("/hadoop-watershed/"+appId.toString());
   }
 
   private void uploadFile(FileSystem fs, File file, ApplicationId appId) throws IOException {
