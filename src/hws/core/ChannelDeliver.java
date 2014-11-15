@@ -105,4 +105,6 @@ public abstract class ChannelDeliver<DataType> extends DefaultExecutor {
         return this.shared;
     }
 
+//EVENTS   
+	public abstract void onProducersHalted();
 }

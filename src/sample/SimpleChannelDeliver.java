@@ -44,4 +44,9 @@ public class SimpleChannelDeliver extends ChannelDeliver<String>{
            e.printStackTrace();
         }*/
 	}
+
+    public void onProducersHalted(){
+        out.println("PRODUCERS HALTED!!");
+        out.flush();
+    }
 }

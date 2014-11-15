@@ -35,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.CountDownLatch;
 
 import org.I0Itec.zkclient.ZkClient;
+import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
 
 import org.apache.commons.cli.ParseException;
@@ -99,10 +100,12 @@ public class InstanceDriver {
     private List<DefaultExecutor> outputStartingOrder;
     private Map<String, List<DefaultExecutor>> inputStartingOrder;
     private Map<String, ExecutorThread<ChannelDeliver>> executors;
+    private List<String> haltedInputs;
     private CountDownLatch latch;
 
     public InstanceDriver(){
        this.outputStartingOrder = new ArrayList<DefaultExecutor>();
+       this.haltedInputs = new ArrayList<String>();
        this.inputStartingOrder = new ConcurrentHashMap<String, List<DefaultExecutor>>();
     }
 
@@ -166,6 +169,9 @@ public class InstanceDriver {
         loadInstance(instanceInfo, zk, "/hadoop-watershed/"+appIdStr+"/");
         out.println("Load Instance "+instanceInfo.instanceId());
         out.flush();
+
+        IZkChildListener producersHaltedListener = createProducersHaltedListener();
+        zk.subscribeChildChanges("/hadoop-watershed/"+appIdStr+"/"+instanceInfo.filterInfo().name()+"/halted", producersHaltedListener);
 
         ExecutorService serverExecutor = Executors.newCachedThreadPool();
 
@@ -306,5 +312,23 @@ public class InstanceDriver {
            //each channel deliver of a filter has a distinct thread for its execution
            executors.put(channelName, new ExecutorThread<ChannelDeliver>(deliver, this.inputStartingOrder.get(channelName), this.latch, zk, znodeBase+instanceInfo.filterInfo().name()+"/finish/"+instanceInfo.instanceId() ));
         }
+    }
+
+    public IZkChildListener createProducersHaltedListener(){
+       IZkChildListener childListener = new IZkChildListener(){
+           private String _filterName = filterName;
+           private int _numFilterInstances = numFilterInstances;
+           private CountDownLatch _doneLatch = doneLatch;
+           public void handleChildChange(String parentPath, List<String> currentChilds) throws Exception{
+               for(String child: currentChilds){
+                   if(!this.haltedInputs.contains(child)){
+                       this.haltedInputs.add(child);
+                       //generate event of producers halted for the ChannelDeliver with channelName==child
+                       this.executors.get(child).getExecutor().onProducersHalted(); //TODO verify the need for a new thread for each event handler
+                   }
+               }
+           }
+       };
+       return childListener;
     }
 }

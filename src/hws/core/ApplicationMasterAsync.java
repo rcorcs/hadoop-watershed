@@ -379,6 +379,7 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
         for(ModuleInfo moduleInfo: this.modulePipeline){ //create containers for each instance of each module
            zk.createPersistent("/hadoop-watershed/"+this.appIdStr+"/"+moduleInfo.filterInfo().name(), "");
            zk.createPersistent("/hadoop-watershed/"+this.appIdStr+"/"+moduleInfo.filterInfo().name()+"/finish", "");
+           zk.createPersistent("/hadoop-watershed/"+this.appIdStr+"/"+moduleInfo.filterInfo().name()+"/halted", "");
            zk.subscribeChildChanges("/hadoop-watershed/"+this.appIdStr+"/"+moduleInfo.filterInfo().name()+"/finish", createFinishListener(moduleInfo.filterInfo().name(), moduleInfo.numFilterInstances(), doneLatch));
            for(int i = 0; i<moduleInfo.numFilterInstances(); i++){
               this.numContainersToWaitFor++;
