@@ -40,8 +40,12 @@ import io.netty.channel.SimpleChannelInboundHandler; //channel event handler
 
 import hws.core.ChannelSender;
 
-public class NetSender extends ChannelSender<String>{
+public abstract class NetSender<DataType> extends ChannelSender<DataType>{
     private PrintWriter out;
+
+    //private EventLoopGroup []groups;
+    private EventLoopGroup group;
+    private Channel []channels;
 
     private Channel connectToServer(final String host, final int port) throws Exception{
        final boolean SSL = false;
@@ -54,10 +58,10 @@ public class NetSender extends ChannelSender<String>{
         }
 
         // Configure the client.
-        EventLoopGroup group = new NioEventLoopGroup();
+        //EventLoopGroup group = new NioEventLoopGroup();
         try {
             Bootstrap b = new Bootstrap();
-            b.group(group)
+            b.group(this.group)
              .channel(NioSocketChannel.class)
              .option(ChannelOption.TCP_NODELAY, true)
              .handler(new ChannelInitializer<SocketChannel>() {
@@ -99,6 +103,8 @@ public class NetSender extends ChannelSender<String>{
             // Wait until the connection is closed.
             //f.channel().closeFuture().sync();
             return f.channel();
+            //this.channels[id] = f.channel();
+            //this.groups[id] = group;
         } finally {
             // Shut down the event loop to terminate all threads.
             //group.shutdownGracefully(); //TODO keep group reference so that it can be shutdown afterwards, during the finish
@@ -106,6 +112,10 @@ public class NetSender extends ChannelSender<String>{
     }
     public void start(){
         super.start();
+
+        //groups = new EventLoopGroup[numConsumerInstances()];
+        this.group = new NioEventLoopGroup();
+        channels = new Channel[numConsumerInstances()];
         try{
            out = new PrintWriter(new BufferedWriter(new FileWriter("/home/hadoop/rcor/yarn/channel-sender-"+channelName()+".out")));
            out.println("Starting channel sender: "+channelName()+" instance "+instanceId());
@@ -117,6 +127,16 @@ public class NetSender extends ChannelSender<String>{
               Integer port = shared().wait("port-"+id);
               out.println("connect to Port: "+port);
               out.flush();
+              try{
+                 out.println("Connecting to server id: "+id);
+                 out.flush();
+                 channels[id] = connectToServer(host, port.intValue());
+                 out.println("Connection established");
+                 out.flush();
+                 if(channels[id]==null){out.println("Error, channel is null");out.flush();}
+              }catch(Exception e){
+                 channels[id] = null;
+              }
            }
         }catch(IOException e){
            e.printStackTrace();
@@ -128,11 +148,25 @@ public class NetSender extends ChannelSender<String>{
         //try{
            out.println("Finishing channel sender: "+channelName()+" instance "+instanceId());
            out.flush();
+           for(int id = 0; id<numConsumerInstances(); id++){
+              out.println("Closing connection to server id "+id);
+              out.flush();
+              this.channels[id].close();
+              out.println("Connection closed");
+              out.flush();
+           }
+           out.println("shuting down eventLoop");
+           out.flush();
+           this.group.shutdownGracefully();
+           out.println("Done finishing NetSender");
            out.close();
         /*}catch(IOException e){
            e.printStackTrace();
         }*/
 	}
-    public void send(String data){}
+
+    protected void send(DataType data, int consumerId){
+       this.channels[consumerId].writeAndFlush(data);
+    }
 }
 

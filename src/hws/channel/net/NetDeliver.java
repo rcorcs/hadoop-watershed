@@ -130,8 +130,12 @@ public class NetDeliver extends ChannelDeliver<String> {
             out.println("Connected to: "+f.channel().localAddress().toString());
             out.flush();
             
+            out.println("Running server, waiting for a close command");
+            out.flush();
             // Wait until the server socket is closed.
             f.channel().closeFuture().sync();
+            out.println("Channel closed");
+            out.flush();
         } catch(Exception e){
            out.println("ERROR: "+e.getMessage());
            out.flush();
@@ -140,6 +144,8 @@ public class NetDeliver extends ChannelDeliver<String> {
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();
         }
+        out.println("Counting down the latch");
+        out.flush();
         this.latch.countDown();
     }
 
@@ -147,6 +153,8 @@ public class NetDeliver extends ChannelDeliver<String> {
        out.println("Closing server channel");
        out.flush();
        this.serverChannel.close();
+       out.println("Closing command completed");
+       out.flush();
     }
 
 	public void finish(){
