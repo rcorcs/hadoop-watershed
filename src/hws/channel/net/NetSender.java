@@ -19,22 +19,105 @@ package hws.channel.net;
 
 import java.io.*;
 
+import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import io.netty.util.concurrent.DefaultEventExecutorGroup; //for non-blocking event handler
+import io.netty.handler.codec.serialization.ClassResolvers; //serialization
+import io.netty.handler.codec.serialization.ObjectDecoder;  //serialization
+import io.netty.handler.codec.serialization.ObjectEncoder;  //serialization
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler; //channel event handler
+
 import hws.core.ChannelSender;
 
 public class NetSender extends ChannelSender<String>{
     private PrintWriter out;
+
+    private Channel connectToServer(final String host, final int port) throws Exception{
+       final boolean SSL = false;
+		// Configure SSL.git
+        final SslContext sslCtx;
+        if (SSL) {
+            sslCtx = SslContext.newClientContext(InsecureTrustManagerFactory.INSTANCE);
+        } else {
+            sslCtx = null;
+        }
+
+        // Configure the client.
+        EventLoopGroup group = new NioEventLoopGroup();
+        try {
+            Bootstrap b = new Bootstrap();
+            b.group(group)
+             .channel(NioSocketChannel.class)
+             .option(ChannelOption.TCP_NODELAY, true)
+             .handler(new ChannelInitializer<SocketChannel>() {
+                 @Override
+                 public void initChannel(SocketChannel ch) throws Exception {
+                     ChannelPipeline p = ch.pipeline();
+                     if (sslCtx != null) {
+                         p.addLast(sslCtx.newHandler(ch.alloc(), host, port));
+                     }
+                     //p.addLast(new LoggingHandler(LogLevel.INFO));
+                     //p.addLast(new EchoClientHandler());
+                     p.addLast(
+                            new ObjectEncoder(),
+                            new ObjectDecoder(ClassResolvers.cacheDisabled(null)) );
+					p.addLast(new DefaultEventExecutorGroup(2), new SimpleChannelInboundHandler<Object>(){
+						@Override
+						public void channelActive(ChannelHandlerContext ctx) {	
+							//ctx.writeAndFlush(null);
+						}
+						@Override
+						public void channelRead0(ChannelHandlerContext ctx, Object msg) {
+							//future.setReply(msg);
+							//ctx.close();
+						}
+						@Override
+						public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+							// Close the connection when an exception is raised.
+							//cause.printStackTrace();
+							//future.setReply(future.getContext().error(cause.getMessage(), SystemCallErrorType.FATAL));
+							ctx.close();
+						}
+					});
+                 }
+             });
+
+            // Start the client.
+            ChannelFuture f = b.connect(host, port).sync();
+
+            // Wait until the connection is closed.
+            //f.channel().closeFuture().sync();
+            return f.channel();
+        } finally {
+            // Shut down the event loop to terminate all threads.
+            //group.shutdownGracefully(); //TODO keep group reference so that it can be shutdown afterwards, during the finish
+        }
+    }
     public void start(){
         super.start();
         try{
            out = new PrintWriter(new BufferedWriter(new FileWriter("/home/hadoop/rcor/yarn/channel-sender-"+channelName()+".out")));
            out.println("Starting channel sender: "+channelName()+" instance "+instanceId());
            out.flush();
-           String host = shared().wait("host-0");
-           out.println("connect to Host: "+host);
-           out.flush();
-           Integer port = shared().wait("port-0");
-           out.println("connect to Port: "+port);
-           out.flush();
+           for(int id = 0; id<numConsumerInstances(); id++){
+              String host = shared().wait("host-"+id);
+              out.println("connect to Host: "+host);
+              out.flush();
+              Integer port = shared().wait("port-"+id);
+              out.println("connect to Port: "+port);
+              out.flush();
+           }
         }catch(IOException e){
            e.printStackTrace();
         }

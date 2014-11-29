@@ -71,7 +71,7 @@ public class Shared {
     */
    public <T extends Object> T wait(String key){
       String znode = znodeBase+encodeKey(key);
-      this.zk.waitUntilExists(znode,TimeUnit.MILLISECONDS, 500);
+      this.zk.waitUntilExists(znode,TimeUnit.MILLISECONDS, 250);
       return get(key);
    }
 
