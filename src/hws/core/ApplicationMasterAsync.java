@@ -91,6 +91,7 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
     private ModulePipeline modulePipeline;
     private Map<String, InstanceInfo.Builder> instances;
     private Map<String, IZkChildListener> finishListeners;
+    private Map<String, List<String>> haltedProducers;
 
     private String zksArgs;
     private String []zkServers;
@@ -112,7 +113,7 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
         nmClient.start();
         this.instances = this.modulePipeline.instances();
         this.finishListeners = new ConcurrentHashMap<String, IZkChildListener>();
-
+        this.haltedProducers = new ConcurrentHashMap<String, List<String>>();
         this.zksArgs = zksArgs;
         this.zkServers = zkServers;
         zk = new ZkClient(zkServers[0]); //TODO choose the ZooKeeper server
@@ -326,7 +327,6 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
            out.close();
         }
         master.runMainLoop();
-
     }
 
     public IZkChildListener createFinishListener(final String filterName, final int numFilterInstances, final CountDownLatch doneLatch){
@@ -344,6 +344,40 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
                         out.print(child+";");
                      }
                      out.println();
+                     out.flush();
+                     out.println("Halting producer: "+_filterName);
+                     out.flush();
+                     for(String channelName: modulePipeline.get(_filterName).outputChannels().keySet()){
+                        if(!haltedProducers.containsKey(channelName)){
+                           haltedProducers.put(channelName, new ArrayList<String>());
+                        }
+                        out.println("Halting producer for channel: "+channelName);
+                        out.flush();
+                        haltedProducers.get(channelName).add(_filterName);
+                        out.println("added to halted list");
+                        out.flush();
+                        out.println("halted producers size: "+haltedProducers.get(channelName).size());
+                        out.flush();
+                        if(modulePipeline.outputBindings()==null){out.println("outputbindings null");out.flush();}
+                        if(modulePipeline.outputBindings().get(channelName)==null){out.println("outputbindings channel null");out.flush();}
+                        out.println("output bindings size: "+modulePipeline.outputBindings().get(channelName).size());
+                        out.flush();
+                        if(haltedProducers.get(channelName).size()==modulePipeline.outputBindings().get(channelName).size()){
+                           out.println("all producers halted");
+                           if(modulePipeline.inputBindings()==null){out.println("inputbindings null");out.flush();}
+                           if(modulePipeline.inputBindings().get(channelName)==null){out.println("inputbindings channel null");out.flush();}
+                           if(modulePipeline.inputBindings().get(channelName)!=null){
+                              for(String consumerName: modulePipeline.inputBindings().get(channelName)){
+                                 out.println("Sending signal for consumer: "+consumerName);
+                                 out.flush();
+                                 zk.createPersistent("/hadoop-watershed/"+appIdStr+"/"+consumerName+"/halted/"+channelName, "");
+                                 out.println("signal sent");
+                                 out.flush();
+                              }
+                           }
+                        }
+                     }
+                     out.println("Producer halted");
                      out.close();
                      _doneLatch.countDown();
                   }catch(Exception e){}
@@ -405,6 +439,9 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
         }catch(InterruptedException e){
            e.printStackTrace();
         }
+
+        zk.createPersistent("/hadoop-watershed/"+appIdStr+"/done", "");
+
         System.out.println("[AM] unregisterApplicationMaster 0");
         // Un-register with ResourceManager
         rmClient.unregisterApplicationMaster(

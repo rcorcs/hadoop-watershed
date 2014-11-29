@@ -103,6 +103,8 @@ public class InstanceDriver {
     private List<String> haltedInputs;
     private CountDownLatch latch;
 
+    private PrintWriter out;
+
     public InstanceDriver(){
        this.outputStartingOrder = new ArrayList<DefaultExecutor>();
        this.haltedInputs = new ArrayList<String>();
@@ -161,7 +163,7 @@ public class InstanceDriver {
 
         ZkClient zk = new ZkClient(zkServers[0]); //TODO select a ZooKeeper server
 
-        PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter("/home/hadoop/rcor/yarn/instance-driver.out")));
+        out = new PrintWriter(new BufferedWriter(new FileWriter("/home/hadoop/rcor/yarn/instance-driver.out")));
         out.println("Decoding instance info: "+instanceInfoBase64);
         out.flush();
         out.println("Instance info: "+instanceInfoJson);
@@ -171,13 +173,16 @@ public class InstanceDriver {
         out.flush();
 
         IZkChildListener producersHaltedListener = createProducersHaltedListener();
-        zk.subscribeChildChanges("/hadoop-watershed/"+appIdStr+"/"+instanceInfo.filterInfo().name()+"/halted", producersHaltedListener);
+        String znode = "/hadoop-watershed/"+appIdStr+"/"+instanceInfo.filterInfo().name()+"/halted";
+        out.println("znode: "+znode);
+        out.flush();
+        zk.subscribeChildChanges(znode, producersHaltedListener);
 
         ExecutorService serverExecutor = Executors.newCachedThreadPool();
 
 
         //wait for a start command from the ApplicationMaster via ZooKeeper
-        String znode = "/hadoop-watershed/"+appIdStr+"/"+instanceInfo.filterInfo().name()+"/start";
+        znode = "/hadoop-watershed/"+appIdStr+"/"+instanceInfo.filterInfo().name()+"/start";
         out.println("znode: "+znode);
         out.flush();
         zk.waitUntilExists(znode, TimeUnit.MILLISECONDS, 250);
@@ -316,15 +321,16 @@ public class InstanceDriver {
 
     public IZkChildListener createProducersHaltedListener(){
        IZkChildListener childListener = new IZkChildListener(){
-           private String _filterName = filterName;
-           private int _numFilterInstances = numFilterInstances;
-           private CountDownLatch _doneLatch = doneLatch;
            public void handleChildChange(String parentPath, List<String> currentChilds) throws Exception{
+              out.println("currentChilds: "+Json.dumps(currentChilds));
+              out.flush();
+              out.println("haltedInputs: "+Json.dumps(haltedInputs));
+              out.flush();
                for(String child: currentChilds){
-                   if(!this.haltedInputs.contains(child)){
-                       this.haltedInputs.add(child);
+                   if(!haltedInputs.contains(child)){
+                       haltedInputs.add(child);
                        //generate event of producers halted for the ChannelDeliver with channelName==child
-                       this.executors.get(child).getExecutor().onProducersHalted(); //TODO verify the need for a new thread for each event handler
+                       executors.get(child).getExecutor().onProducersHalted(); //TODO verify the need for a new thread for each event handler
                    }
                }
            }

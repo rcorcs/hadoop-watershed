@@ -143,14 +143,17 @@ public class NetDeliver extends ChannelDeliver<String> {
         this.latch.countDown();
     }
 
-	public void finish(){
+    public void onProducersHalted(){
        out.println("Closing server channel");
        out.flush();
        this.serverChannel.close();
+    }
+
+	public void finish(){
        out.println("Waiting server channel to be closed");
        out.flush();
        try {
-           this.latch.await(); //await the input threads to finish
+           this.latch.await(); //await server channel to be closed
        }catch(InterruptedException e){
            // handle
            out.println("Waiting ERROR: "+e.getMessage());

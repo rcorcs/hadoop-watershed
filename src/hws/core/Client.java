@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.I0Itec.zkclient.ZkClient;
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
@@ -257,16 +258,18 @@ public class Client {
     LOG.info("Submitting application " + appId);
     yarnClient.submitApplication(appContext);
     
+
     LOG.info("Waiting for containers to finish");
+    zk.waitUntilExists("/hadoop-watershed/"+appId.toString()+"/done", TimeUnit.MILLISECONDS, 250);
     ApplicationReport appReport = yarnClient.getApplicationReport(appId);
     YarnApplicationState appState = appReport.getYarnApplicationState();
-    while (appState != YarnApplicationState.FINISHED && 
+    /*while (appState != YarnApplicationState.FINISHED && 
            appState != YarnApplicationState.KILLED && 
            appState != YarnApplicationState.FAILED) {
       Thread.sleep(100);
       appReport = yarnClient.getApplicationReport(appId);
       appState = appReport.getYarnApplicationState();
-    }
+    }*/
 
     System.out.println(
         "Application " + appId + " finished with" +

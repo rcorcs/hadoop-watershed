@@ -9,5 +9,5 @@ for f in $(find ./lib/ -name "*.jar"); do
    CPFILES=$CPFILES':'$f
 done
 export HADOOP_CLASSPATH=$CPFILES
-$YARN_HOME/bin/hadoop jar hws.jar hws.core.Client -jar hdfs:///hws/bin/hws.jar -zks 10.0.0.2 --load mapper.xml reducer.xml
+$YARN_HOME/bin/hadoop jar hws.jar hws.core.Client -jar hdfs:///hws/bin/hws.jar -zks 10.0.0.2 --load reducer.xml mapper.xml
 #$YARN_HOME/bin/hadoop jar hws.jar hws.core.Client -jar hdfs:///hws/bin/hws.jar $*
