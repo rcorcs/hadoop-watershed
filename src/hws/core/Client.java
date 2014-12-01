@@ -263,13 +263,13 @@ public class Client {
     zk.waitUntilExists("/hadoop-watershed/"+appId.toString()+"/done", TimeUnit.MILLISECONDS, 250);
     ApplicationReport appReport = yarnClient.getApplicationReport(appId);
     YarnApplicationState appState = appReport.getYarnApplicationState();
-    /*while (appState != YarnApplicationState.FINISHED && 
+    while (appState != YarnApplicationState.FINISHED && 
            appState != YarnApplicationState.KILLED && 
            appState != YarnApplicationState.FAILED) {
       Thread.sleep(100);
       appReport = yarnClient.getApplicationReport(appId);
       appState = appReport.getYarnApplicationState();
-    }*/
+    }
 
     System.out.println(
         "Application " + appId + " finished with" +

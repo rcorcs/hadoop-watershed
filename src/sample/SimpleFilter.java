@@ -45,6 +45,10 @@ public class SimpleFilter extends Filter<String, String>{
         }*/
 	}
     public void process(String src, String data){
+       out.println("processing "+src+" : "+data);
+       for(String channelName: outputChannels()){
+          outputChannel(channelName).send(data);
+       }
     }
     public void onChannelHalt(String channelName){}
 	public void onChannelsHalted(){}

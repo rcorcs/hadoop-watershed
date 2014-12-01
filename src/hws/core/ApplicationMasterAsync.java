@@ -431,14 +431,14 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
         //TODO "send" the start signal via ZooKeeper
 
         System.out.println("[AM] waiting for containers to finish");
-        /*while (!doneWithContainers()) {
-            Thread.sleep(100);
-        }*/
         try {
            doneLatch.await(); //await the input threads to finish
         }catch(InterruptedException e){
            e.printStackTrace();
         }
+        /*while(!doneWithContainers()) {
+            Thread.sleep(50);
+        }*/
 
         zk.createPersistent("/hadoop-watershed/"+appIdStr+"/done", "");
 

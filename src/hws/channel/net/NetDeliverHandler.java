@@ -17,6 +17,9 @@
 
 package hws.channel.net;
 
+import java.io.*;
+
+
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -27,13 +30,24 @@ import hws.core.ChannelDeliver;
  */
 @Sharable
 public class NetDeliverHandler<DataType> extends ChannelInboundHandlerAdapter{
+    private PrintWriter out;
     private ChannelDeliver<DataType> channelDeliver;
 	public NetDeliverHandler(ChannelDeliver<DataType> channelDeliver){
 		this.channelDeliver = channelDeliver;
+
+        try{
+          out = new PrintWriter(new BufferedWriter(new FileWriter("/home/hadoop/rcor/yarn/net-deliver-handler.out")));
+          out.println("Starting channel deliver handler");
+          out.flush();
+        }catch(IOException e){
+          e.printStackTrace();
+        }
 	}
 	
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg){
+        out.println("delivering: "+msg.toString());
+        out.flush();
         this.channelDeliver.deliver((DataType)msg);
 		/*SystemCallRequest req = (SystemCallRequest)msg;
 		System.out.println("Server received: "+req.module()+"."+req.method());

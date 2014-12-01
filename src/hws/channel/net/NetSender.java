@@ -151,6 +151,7 @@ public abstract class NetSender<DataType> extends ChannelSender<DataType>{
            for(int id = 0; id<numConsumerInstances(); id++){
               out.println("Closing connection to server id "+id);
               out.flush();
+              this.channels[id].flush();
               this.channels[id].close();
               out.println("Connection closed");
               out.flush();
@@ -166,6 +167,7 @@ public abstract class NetSender<DataType> extends ChannelSender<DataType>{
 	}
 
     protected void send(DataType data, int consumerId){
+       out.println("Sending data to consumerId "+consumerId+" : "+data.toString());
        this.channels[consumerId].writeAndFlush(data);
     }
 }

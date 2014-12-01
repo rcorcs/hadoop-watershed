@@ -44,5 +44,8 @@ public class SimpleChannelSender extends ChannelSender<String>{
            e.printStackTrace();
         }*/
 	}
-    public void send(String data){}
+    public void send(String data){
+       out.println("data: "+data);
+       out.flush();
+    }
 }

@@ -23,7 +23,7 @@ import java.util.concurrent.CountDownLatch;
 
 import hws.core.ChannelDeliver;
 
-public class SimpleChannelDeliver extends ChannelDeliver<String>{
+public class IntegerDeliver extends ChannelDeliver<String>{
     private PrintWriter out;
     private CountDownLatch latch;
 
@@ -37,6 +37,16 @@ public class SimpleChannelDeliver extends ChannelDeliver<String>{
         }catch(IOException e){
            e.printStackTrace();
         }
+        String strN = attribute("n");
+        if(strN==null)strN="100";
+        out.println("Generating n: "+strN);
+        out.flush();
+        Integer n = new Integer(strN);
+        for(int i = 0; i<n.intValue(); i++){
+           deliver(""+i);
+        }
+        out.println("Finished generating integers");
+        out.flush();
 	}
 
 	public void finish(){
