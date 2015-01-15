@@ -5,6 +5,9 @@ import java.io.IOException;
 
 import java.util.AbstractMap.SimpleEntry;
 
+import org.apache.commons.lang.SerializationUtils;
+import org.apache.commons.codec.binary.Base64;
+
 import hws.net.NodeCommunicator;
 import hws.util.Json;
 
@@ -33,8 +36,10 @@ public class KeyValueSender extends NetSender<SimpleEntry<String, String>> {
       NodeCommunicator comm = getCommunicator(key);
       if(comm!=null){
          try{
-            String json = Json.dumps(data);
-            comm.writeLine(json);
+            //String json = Json.dumps(data);
+            byte[] dataBytes = SerializationUtils.serialize(data);
+            String dataBase64 = Base64.encodeBase64String(dataBytes).replaceAll("\\s","");
+            comm.writeLine(dataBase64);
             //Logger.info("sending: "+key+": "+json);
             //comm.flush();
          }catch(IOException e){

@@ -89,7 +89,7 @@ public class Client {
     //final int n = Integer.valueOf(args[1]);
     //final Path jarPath = new Path(args[2]);
     Options options = new Options();
-    options.addOption(OptionBuilder.withLongOpt("jar")
+    /*options.addOption(OptionBuilder.withLongOpt("jar")
                                    .withDescription( "Jar path" )
                                    .hasArg()
                                    .withArgName("JarPath")
@@ -99,29 +99,29 @@ public class Client {
                                    .hasArg()
                                    .withArgName("ClassName")
                                    .create());
-    options.addOption(OptionBuilder.withLongOpt("zk-servers")
+    */options.addOption(OptionBuilder.withLongOpt("zk-servers")
                                    .withDescription( "List of the ZooKeeper servers" )
                                    .hasArgs()
                                    .withArgName("zkAddrs")
                                    .create("zks"));
-    options.addOption("l", "list", false, "list modules");
+    //options.addOption("l", "list", false, "list modules");
     options.addOption(OptionBuilder.withLongOpt( "load" )
                                    .withDescription( "load new modules" )
                                    .hasArgs()
                                    .withArgName("XMLFiles")
                                    .create());
-    options.addOption(OptionBuilder.withLongOpt( "remove" )
+    /*options.addOption(OptionBuilder.withLongOpt( "remove" )
                                    .withDescription( "remove modules" )
                                    .hasArgs()
                                    .withArgName("ModuleNames")
                                    .create("rm"));
-    CommandLineParser parser = new BasicParser();
+    */CommandLineParser parser = new BasicParser();
     CommandLine cmd = parser.parse(options, args);
 
-    Path jarPath = null;
-    String schedulerClassName = null;
+    //Path jarPath = null;
+    //String schedulerClassName = null;
     String []xmlFileNames = null;
-    String []moduleNames = null;
+    //String []moduleNames = null;
     String zksArgs = "";
     String []zkServers = null;
     if(cmd.hasOption("zks")){
@@ -131,7 +131,7 @@ public class Client {
           zksArgs += " "+zks;
        }
     }
-    if(cmd.hasOption("l")){
+    /*if(cmd.hasOption("l")){
        LOG.warn("Argument --list (-l) is not supported yet.");
     }
     if(cmd.hasOption("jar")){
@@ -139,14 +139,14 @@ public class Client {
     }
     if(cmd.hasOption("scheduler")){
        schedulerClassName = cmd.getOptionValue("scheduler");
-    }
+    }*/
     if(cmd.hasOption("load")){
        xmlFileNames = cmd.getOptionValues("load");
-    }else if(cmd.hasOption("rm")){
+    }/*else if(cmd.hasOption("rm")){
        moduleNames = cmd.getOptionValues("rm");
-    }
+    }*/
 
-    LOG.info("Jar-Path "+jarPath);
+    //LOG.info("Jar-Path "+jarPath);
     if(xmlFileNames!=null){
        String paths = "";
        for(String path : xmlFileNames){
@@ -154,13 +154,13 @@ public class Client {
        }
        LOG.info("Load XMLs: "+paths);
     }
-    if(moduleNames!=null){
+    /*if(moduleNames!=null){
        String modules = "";
        for(String module: moduleNames){
           modules += module+"; ";
        }
        LOG.info("remove: "+modules);
-    }
+    }*/
     // Create yarnClient
     YarnConfiguration conf = new YarnConfiguration();
     YarnClient yarnClient = YarnClient.createYarnClient();
@@ -277,7 +277,7 @@ public class Client {
     		" at " + appReport.getFinishTime());
 
     System.out.println("deleting "+appId.toString()+" znode");
-    //TODO zk.deleteRecursive("/hadoop-watershed/"+appId.toString());
+    zk.deleteRecursive("/hadoop-watershed/"+appId.toString());
   }
 
   private void uploadFile(FileSystem fs, File file, ApplicationId appId) throws IOException {

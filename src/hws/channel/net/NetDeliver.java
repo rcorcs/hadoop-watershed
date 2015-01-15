@@ -12,6 +12,9 @@ import java.util.concurrent.ExecutorService;
 
 import java.util.concurrent.CountDownLatch;
 
+import org.apache.commons.lang.SerializationUtils;
+import org.apache.commons.codec.binary.Base64;
+
 import org.apache.zookeeper.KeeperException;
 
 import hws.util.Json;
@@ -29,7 +32,9 @@ class MessageDeliver extends MessageHandler {
   }
 
   public void handleMessage(String msg){
-    this.deliver.deliver(msg);
+    byte[] dataBytes = Base64.decodeBase64(msg);
+    //SimpleEntry<String, String> data = (SimpleEntry<String, String>)SerializationUtils.deserialize(dataBytes);
+    this.deliver.deliver((String)SerializationUtils.deserialize(dataBytes));
   }
 }
 
