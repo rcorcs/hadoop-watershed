@@ -75,6 +75,7 @@ class ExecutorThread<ExecutorType extends DefaultExecutor>  extends Thread {
         for(DefaultExecutor defaultExecutor: this.startingOrder){
             defaultExecutor.start();
         }
+        
         ListIterator<DefaultExecutor> li = this.startingOrder.listIterator(this.startingOrder.size());
         while(li.hasPrevious()){
             DefaultExecutor defaultExecutor = li.previous();

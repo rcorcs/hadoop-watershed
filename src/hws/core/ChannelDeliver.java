@@ -20,6 +20,8 @@ package hws.core;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import java.util.concurrent.CountDownLatch;
+
 public abstract class ChannelDeliver<DataType> extends DefaultExecutor {
 	private ChannelReceiver<DataType> receiver;
 	private int instanceId;
@@ -30,6 +32,13 @@ public abstract class ChannelDeliver<DataType> extends DefaultExecutor {
 
 	private Map<String, String> attrs;
 	private Shared shared;
+
+        private CountDownLatch haltLatch;
+
+        public void start(){
+            super.start();
+            this.haltLatch = new CountDownLatch(1);
+        }
 
 	public ChannelReceiver<DataType> channelReceiver(){
 		return this.receiver;
@@ -76,8 +85,17 @@ public abstract class ChannelDeliver<DataType> extends DefaultExecutor {
 	}
 
 	public void halt(){
-		filter.halt(channelName());
+                this.haltLatch.countDown();
+		//filter.halt(channelName());
 	}
+
+        void waitToHalt() throws InterruptedException{
+           this.haltLatch.await(); //await channel deliver to be halted
+        }
+
+        boolean hasHalted(){
+            return this.haltLatch.getCount()==0;
+        }
 
 	void attribute(String key, String value){
 		this.attrs.put(key, value);

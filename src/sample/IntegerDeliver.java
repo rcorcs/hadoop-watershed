@@ -25,11 +25,9 @@ import hws.core.ChannelDeliver;
 
 public class IntegerDeliver extends ChannelDeliver<String>{
     private PrintWriter out;
-    private CountDownLatch latch;
 
     public void start(){
         super.start();
-        latch = new CountDownLatch(1);
         try{
            out = new PrintWriter(new BufferedWriter(new FileWriter("/home/hadoop/rcor/yarn/channel-deliver-"+channelName()+".out")));
            out.println("Starting channel deliver: "+channelName()+" instance "+instanceId());
@@ -55,13 +53,6 @@ public class IntegerDeliver extends ChannelDeliver<String>{
         if("true".equals(attribute("wait"))){
            out.println("Waiting for producers to end");
            out.flush();
-           try {
-              latch.await(); //await the input threads to finish
-           }catch(InterruptedException e){
-              // handle
-              out.println("Waiting ERROR: "+e.getMessage());
-              out.flush();
-           }
         }
         //try{
            out.println("Finishing channel deliver: "+channelName()+" instance "+instanceId());
@@ -73,7 +64,6 @@ public class IntegerDeliver extends ChannelDeliver<String>{
 	}
 
     public void onProducersHalted(){
-       latch.countDown();
        out.println("PRODUCERS HALTED!!");
        out.flush();
     }
