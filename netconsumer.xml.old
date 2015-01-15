@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<filter name="netconsumer" file="sample.jar" class="sample.SimpleFilter" instances="2">
+	<input>
+		<channel name="net">
+			<sender class="hws.channel.net.BroadcastSender" file="sample.jar" />
+            <deliver class="hws.channel.net.NetDeliver" file="sample.jar">
+               <attr name="wait" value="true" />
+            </deliver>
+		</channel>
+	</input>
+	<output>
+		<channel name="writer">
+			<sender class="sample.SimpleChannelSender" file="sample.jar" />
+		</channel>
+	</output>
+</filter>

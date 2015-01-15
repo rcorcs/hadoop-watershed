@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<filter name="netproducer" file="sample.jar" class="sample.Mapper" instances="1">
+	<input>
+		<channel name="reader">
+			<deliver class="hws.channel.hdfs.LineReader">
+               <attr name="path" value="hdfs:///text.txt"/>
+               
+			</deliver>
+		</channel>
+	</input>
+	<output>
+		<channel name="net">
+		</channel>
+	</output>
+</filter>

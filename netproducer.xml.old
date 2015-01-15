@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<filter name="netproducer" file="sample.jar" class="sample.SimpleFilter" instances="1">
+	<input>
+		<channel name="reader">
+			<deliver class="sample.IntegerDeliver" file="sample.jar">
+               <attr name="n" value="200"/>
+               <attr name="wait" value="false"/>
+			</deliver>
+		</channel>
+	</input>
+	<output>
+		<channel name="net">
+		</channel>
+	</output>
+</filter>

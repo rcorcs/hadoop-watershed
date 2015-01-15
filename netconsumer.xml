@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<filter name="netconsumer" file="sample.jar" class="sample.Reducer" instances="2">
+	<input>
+		<channel name="net">
+			<sender class="hws.channel.net.KeyValueSender" file="sample.jar" />
+            <deliver class="hws.channel.net.KeyValueDeliver" file="sample.jar">
+               <attr name="wait" value="true" />
+            </deliver>
+		</channel>
+	</input>
+	<output>
+		<channel name="writer">
+           <sender class="hws.channel.hdfs.LineWriter" >
+              <attr name="path" value="hdfs:///wordcount" />
+           </sender>
+		</channel>
+	</output>
+</filter>
