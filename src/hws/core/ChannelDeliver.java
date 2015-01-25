@@ -22,8 +22,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import java.util.concurrent.CountDownLatch;
 
-public abstract class ChannelDeliver<DataType> extends DefaultExecutor {
-	private ChannelReceiver<DataType> receiver;
+public abstract class ChannelDeliver extends DefaultExecutor {
+	private ChannelReceiver receiver;
 	private int instanceId;
 	private int nInstances;
 
@@ -40,11 +40,11 @@ public abstract class ChannelDeliver<DataType> extends DefaultExecutor {
             this.haltLatch = new CountDownLatch(1);
         }
 
-	public ChannelReceiver<DataType> channelReceiver(){
+	public ChannelReceiver channelReceiver(){
 		return this.receiver;
 	}
 
-	void channelReceiver(ChannelReceiver<DataType> receiver){
+	void channelReceiver(ChannelReceiver receiver){
 		this.receiver = receiver;
 	}
 
@@ -72,7 +72,7 @@ public abstract class ChannelDeliver<DataType> extends DefaultExecutor {
 		return this.channelName;
 	}
 
-	public void deliver(DataType data){
+	public void deliver(Object data){
 		channelReceiver().receive(channelName(), data);
 	}
 

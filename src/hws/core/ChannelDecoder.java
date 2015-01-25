@@ -17,10 +17,10 @@
 
 package hws.core;
 
-public abstract class ChannelDecoder<InputType, OutputType> extends ChannelDeliver<OutputType> implements ChannelReceiver<InputType> {
-    public abstract void decode(InputType data);
+public abstract class ChannelDecoder extends ChannelDeliver implements ChannelReceiver {
+    public abstract void decode(Object data);
 
-	public void receive(String src, InputType data){
+	public void receive(String src, Object data){
 		decode(data);
 	}
 }

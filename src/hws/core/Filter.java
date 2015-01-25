@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import java.util.AbstractMap.SimpleEntry;
 
-public abstract class Filter<InputType, OutputType> extends DefaultExecutor implements ChannelReceiver<InputType> {
+public abstract class Filter extends DefaultExecutor implements ChannelReceiver {
 	private String name;
 	private int instanceId;
 	private Map<String, String> attrs;
@@ -33,12 +33,12 @@ public abstract class Filter<InputType, OutputType> extends DefaultExecutor impl
 	private Map<String, Boolean> inChannelsHalted;
 
 	private Set<String> outputChannels;
-	private Map<String, ChannelOutputSet<OutputType>> outputSets;
+	private Map<String, ChannelOutputSet> outputSets;
     //private Shared shared;
 
-	public abstract void process(String src, InputType data);
+	public abstract void process(String src, Object data);
 
-	public void receive(String src, InputType data){
+	public void receive(String src, Object data){
 		process(src, data);
 	}
 
@@ -80,9 +80,9 @@ public abstract class Filter<InputType, OutputType> extends DefaultExecutor impl
 
 	void outputChannels(Set<String> outputChannels){
 		this.outputChannels = outputChannels;
-		this.outputSets = new ConcurrentHashMap<String, ChannelOutputSet<OutputType>>();
+		this.outputSets = new ConcurrentHashMap<String, ChannelOutputSet>();
 		for(String channelName: this.outputChannels){
-			this.outputSets.put(channelName, new ChannelOutputSet<OutputType>());
+			this.outputSets.put(channelName, new ChannelOutputSet());
 		}
 	}
 
@@ -90,7 +90,7 @@ public abstract class Filter<InputType, OutputType> extends DefaultExecutor impl
 		return this.outputChannels;
 	}
 
-	public ChannelOutputSet<OutputType> outputChannel(String channelName){
+	public ChannelOutputSet outputChannel(String channelName){
 		return this.outputSets.get(channelName);
 	}
 

@@ -36,7 +36,7 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
 import hws.core.ChannelDeliver;
 
-public class LineReader extends ChannelDeliver<String>{
+public class LineReader extends ChannelDeliver{
    private PrintWriter out;
    private FileSystem fileSystem;
    private FSDataInputStream reader;
@@ -63,7 +63,7 @@ public class LineReader extends ChannelDeliver<String>{
       buffer = new StringBuffer();
       try{
          Configuration conf = new Configuration();
-         //       conf.setBoolean("fs.hdfs.impl.disable.cache", true);
+         //conf.setBoolean("fs.hdfs.impl.disable.cache", true);
          fileSystem = FileSystem.get(conf);
 
          String pathAttr = attribute("path");
@@ -76,10 +76,10 @@ public class LineReader extends ChannelDeliver<String>{
          Path path = new Path(pathAttr);
          ///reader = fileSystem.open(path);
 
-         ///TODO FileSystem:: public boolean isDirectory(Path f)
+         //verifies if we have a path to a directory or to a file
          if(fileSystem.isDirectory(path)){
             //totalBytes
-            //TODO a list of files
+            //a list of files
             FileStatus[] status = fileSystem.listStatus(path);
             totalBytes = 0;
             for(int i=0;i<status.length;i++){

@@ -24,17 +24,17 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import java.lang.reflect.ParameterizedType;
 
-public class ChannelOutputSet<DataType>{
+public class ChannelOutputSet{
 
-	private Map<String, ChannelSender<DataType>> senders;
+	private Map<String, ChannelSender> senders;
 	private boolean hasStarted;
 
 	ChannelOutputSet(){
-		this.senders = new ConcurrentHashMap<String, ChannelSender<DataType>>();
+		this.senders = new ConcurrentHashMap<String, ChannelSender>();
 		this.hasStarted = false;
 	}
 
-	void addChannelSender(String filterName, ChannelSender<DataType> sender) {
+	void addChannelSender(String filterName, ChannelSender sender) {
 		System.out.println("adding channel writer set: "+filterName);
 		if(hasStarted){
 			//System.out.println("starting channel writer set: "+channel.getHostName()+" "+channel.getTaskId());
@@ -51,15 +51,15 @@ public class ChannelOutputSet<DataType>{
 		}
 	}
 
-	Map<String, ChannelSender<DataType>> channelSenders(){
+	Map<String, ChannelSender> channelSenders(){
 		return this.senders;
 	}
 
-	ChannelSender<DataType> channelSender(String filterName){
+	ChannelSender channelSender(String filterName){
 		return this.senders.get(filterName);
 	}
 
-	public void send(DataType data) {
+	public void send(Object data) {
 		//System.out.println("WRITER SET: writing in ("+outputChannels.keySet().size()+")");
 		for(String filterName : this.senders.keySet()){
 			//ChannelWriter<DataType> output = outputChannels.get(filterName);
@@ -69,13 +69,13 @@ public class ChannelOutputSet<DataType>{
 	}
 
 	void removeChannelSender(String filterName) {
-		ChannelSender<DataType> sender = this.senders.remove(filterName);
+		ChannelSender sender = this.senders.remove(filterName);
 		if(sender!=null) sender.finish();
 	}
 
 	void finish() {
 		for(String filterName : this.senders.keySet()){
-			ChannelSender<DataType> sender = this.senders.remove(filterName);
+			ChannelSender sender = this.senders.remove(filterName);
 			if(sender!=null) sender.finish();
 		}
 		

@@ -8,7 +8,7 @@ import hws.net.NodeCommunicator;
 
 import hws.core.ChannelSender;
 
-public abstract class NetSender<DataType> extends ChannelSender<DataType> {
+public abstract class NetSender extends ChannelSender {
   private NodeCommunicator []comm = null;
 
   public void start(){

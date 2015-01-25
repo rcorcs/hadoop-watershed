@@ -17,6 +17,6 @@
 
 package hws.core;
 
-public interface ChannelReceiver<DataType> {
-	public void receive(String src, DataType data);
+public interface ChannelReceiver {
+	public void receive(String src, Object data);
 }

@@ -17,20 +17,20 @@
 
 package hws.core;
 
-public abstract class ChannelEncoder<InputType, OutputType> extends ChannelSender<InputType> {
-	private ChannelSender<OutputType> sender;
+public abstract class ChannelEncoder extends ChannelSender {
+	private ChannelSender sender;
 
-	public ChannelSender<OutputType> channelSender(){
+	public ChannelSender channelSender(){
 		return this.sender;
 	}
 
-	void channelSender(ChannelSender<OutputType> sender){
+	void channelSender(ChannelSender sender){
 		this.sender = sender;
 	}
 
-    public void send(InputType data){
+    public void send(Object data){
         encode(data);
     }
 
-    public abstract void encode(InputType data);    
+    public abstract void encode(Object data);    
 }

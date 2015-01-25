@@ -20,7 +20,7 @@ package hws.core;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public abstract class ChannelSender<DataType> extends DefaultExecutor {
+public abstract class ChannelSender extends DefaultExecutor {
 	private int instanceId;
     private Shared shared;
 	private String channelName;
@@ -30,7 +30,7 @@ public abstract class ChannelSender<DataType> extends DefaultExecutor {
 
 	private Map<String, String> attrs;
 
-	public abstract void send(DataType data);
+	public abstract void send(Object data);
 
 	void instanceId(int instanceId){
 		this.instanceId = instanceId;

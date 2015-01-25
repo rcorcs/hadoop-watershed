@@ -58,7 +58,10 @@ public class Reducer extends Filter<SimpleEntry<String, String>, String>{
         e.printStackTrace();
         }*/
    }
+
    public void process(String src, SimpleEntry<String, String> data){
+//   public void process(String src, Object obj){
+//      SimpleEntry<String, String> data = (SimpleEntry<String, String>)obj;
       out.println("processing "+src+" : "+Json.dumps(data));
       out.flush();
       String word = data.getKey().toLowerCase();

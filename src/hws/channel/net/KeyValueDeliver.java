@@ -30,21 +30,25 @@ import hws.core.ChannelDeliver;
 
 
 class KVMessageDeliver extends MessageHandler {
-   private ChannelDeliver<SimpleEntry<String, String>> deliver;
+   private ChannelDeliver deliver;
+   private PrintWriter out;
 
-   public KVMessageDeliver(ChannelDeliver<SimpleEntry<String, String>> deliver){
+   public KVMessageDeliver(ChannelDeliver deliver, PrintWriter out){
       this.deliver = deliver;
+      this.out = out;
    }
 
    public void handleMessage(String msg){
       //SimpleEntry<String, String> data = Json.loads(msg, new TypeToken< SimpleEntry<String, String> >() {}.getType());
+      out.println("received: "+msg);
       byte[] dataBytes = Base64.decodeBase64(msg);
-      SimpleEntry<String, String> data = (SimpleEntry<String, String>)SerializationUtils.deserialize(dataBytes);
+      Object data = SerializationUtils.deserialize(dataBytes);
+      out.println("data received: "+data.toString());
       this.deliver.deliver(data);
    }
 }
 
-public class KeyValueDeliver extends ChannelDeliver<SimpleEntry<String, String>> {
+public class KeyValueDeliver extends ChannelDeliver {
    private PrintWriter out;
 
    private ExecutorService serverExecutor;
@@ -87,7 +91,7 @@ public class KeyValueDeliver extends ChannelDeliver<SimpleEntry<String, String>>
       out.flush();
       while(this.latch.getCount()>0){
          try{
-            KVMessageDeliver handler = new KVMessageDeliver(this);
+            KVMessageDeliver handler = new KVMessageDeliver(this, out);
             handler.setSocket(this.server.accept());
             serverExecutor.execute( handler );
          }catch(IOException e){

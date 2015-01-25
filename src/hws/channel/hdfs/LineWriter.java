@@ -36,7 +36,7 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
 import hws.core.ChannelSender;
 
-public class LineWriter extends ChannelSender<String>{
+public class LineWriter extends ChannelSender{
    private PrintWriter out;
    private FileSystem fileSystem;
    private FSDataOutputStream writer;
@@ -63,17 +63,22 @@ public class LineWriter extends ChannelSender<String>{
          }
          out.println("Opening path: " + pathAttr);
          out.flush();
-         Path folderPath = new Path(pathAttr);
+         Path filePath;
 
-         // create a new folder to put the files
-         if( !fileSystem.exists(folderPath) ){
-            out.println("Creating folder: " + pathAttr);
-            out.flush();
-            fileSystem.mkdirs(folderPath);
+         //TODO if we have just one instance, create a file instead a folder of files.
+         if( numConsumerInstances() == 1 ){
+            filePath = new Path( pathAttr );
+         } else{
+            // create a new folder to put the files
+            Path folderPath = new Path ( pathAttr );
+            if( !fileSystem.exists( folderPath ) ){
+               out.println("Creating folder: " + pathAttr);
+               out.flush();
+               fileSystem.mkdirs(folderPath);
+            }
+            //create a file for this instance
+            filePath = new Path(pathAttr + "/" + instanceId());
          }
-
-         //create a file for this instance
-         Path filePath = new Path(pathAttr + "/" + instanceId());
          writer = fileSystem.create(filePath);
 
       }catch(IOException e){
@@ -113,7 +118,8 @@ public class LineWriter extends ChannelSender<String>{
         }*/
    }
 
-   public void send( String data ){
+   public void send( Object obj ){
+      String data = (String)obj;
       byte[] dataBytes = (data + "\n").getBytes();
       try{
          writer.write(dataBytes, 0, dataBytes.length);
