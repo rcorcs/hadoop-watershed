@@ -17,7 +17,7 @@
 
 package hws.channel.hdfs;
 
-import java.io.*;
+import java.io.IOException;
 
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -35,21 +35,15 @@ import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
 import hws.core.ChannelSender;
+import hws.util.Logger;
 
 public class LineWriter extends ChannelSender{
-   private PrintWriter out;
    private FileSystem fileSystem;
    private FSDataOutputStream writer;
 
    public void start(){
       super.start();
-      try{
-         out = new PrintWriter(new BufferedWriter(new FileWriter("/home/hadoop/rcor/yarn/channel-deliver-"+channelName()+".out")));
-         out.println("Starting channel sender: "+channelName()+" instance "+instanceId());
-         out.flush();
-      }catch(IOException e){
-         e.printStackTrace();
-      }
+      Logger.info("Starting channel sender: "+channelName()+" instance "+instanceId());
 
       try{
          Configuration conf = new Configuration();
@@ -61,8 +55,7 @@ public class LineWriter extends ChannelSender{
          if(!pathAttr.startsWith("hdfs://")){
             pathAttr = "hdfs://"+pathAttr;
          }
-         out.println("Opening path: " + pathAttr);
-         out.flush();
+         Logger.info("Opening path: " + pathAttr);
          Path filePath;
 
          //TODO if we have just one instance, create a file instead a folder of files.
@@ -72,8 +65,7 @@ public class LineWriter extends ChannelSender{
             // create a new folder to put the files
             Path folderPath = new Path ( pathAttr );
             if( !fileSystem.exists( folderPath ) ){
-               out.println("Creating folder: " + pathAttr);
-               out.flush();
+               Logger.info("Creating folder: " + pathAttr);
                fileSystem.mkdirs(folderPath);
             }
             //create a file for this instance
@@ -82,18 +74,15 @@ public class LineWriter extends ChannelSender{
          writer = fileSystem.create(filePath);
 
       }catch(IOException e){
-         out.println("EXCEPTION: "+e.getMessage());
-         out.flush();
-         e.printStackTrace();
+         Logger.severe("EXCEPTION: "+e.toString());
       }
    }
 
    public void finish(){
       super.finish();
-      out.println("attribute: 'wait' = "+attribute("wait"));
+      Logger.info("attribute: 'wait' = "+attribute("wait"));
       if("true".equals(attribute("wait"))){
-         out.println("Waiting for producers to end");
-         out.flush();
+         Logger.info("Waiting for producers to end");
          /*try {
          //latch.await(); //await the input threads to finish
          }catch(InterruptedException e){
@@ -110,9 +99,7 @@ public class LineWriter extends ChannelSender{
       }
 
       //try{
-      out.println("Finishing channel deliver: "+channelName()+" instance "+instanceId());
-      out.flush();
-      out.close();
+      Logger.info("Finishing channel deliver: "+channelName()+" instance "+instanceId());
       /*}catch(IOException e){
         e.printStackTrace();
         }*/
@@ -125,9 +112,7 @@ public class LineWriter extends ChannelSender{
          writer.write(dataBytes, 0, dataBytes.length);
          writer.flush();
       }catch(IOException e){ ////TODO throw Exception
-         e.printStackTrace();
+         Logger.severe(e.toString());
       }
-      out.println( "data: " + data );
-      out.flush();
    }
 }

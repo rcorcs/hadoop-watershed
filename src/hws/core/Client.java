@@ -38,6 +38,10 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.commons.io.FileUtils;
 
 import org.apache.commons.codec.binary.Base64;
@@ -77,6 +81,7 @@ import hws.core.info.StubInfo;
 import hws.core.info.ModulePipeline;
 
 import hws.util.Json;
+//import hws.util.Logger;
 
 public class Client {
 
@@ -131,6 +136,11 @@ public class Client {
           zksArgs += " "+zks;
        }
     }
+
+    //Logger setup
+    //FSDataOutputStream writer = FileSystem.get(conf).create(new Path("hdfs:///hws/apps/"+appIdStr+"/logs/jobClient.log"));
+    //Logger.addOutputStream(writer);
+
     /*if(cmd.hasOption("l")){
        LOG.warn("Argument --list (-l) is not supported yet.");
     }
@@ -188,8 +198,9 @@ public class Client {
     FileSystem fs = FileSystem.get(conf);
 
     LOG.info("Collecting files to upload");
-	fs.mkdirs(new Path("hdfs:///hws/apps/"+appId.toString()));
-	
+    fs.mkdirs(new Path("hdfs:///hws/apps/"+appId.toString()));	
+    fs.mkdirs(new Path("hdfs:///hws/apps/"+appId.toString()+"/logs"));
+
     ModulePipeline modulePipeline = ModulePipeline.fromXMLFiles(xmlFileNames);
     LOG.info("Uploading files to HDFS");
     for(String path: modulePipeline.files()){
@@ -277,7 +288,7 @@ public class Client {
     		" at " + appReport.getFinishTime());
 
     System.out.println("deleting "+appId.toString()+" znode");
-    zk.deleteRecursive("/hadoop-watershed/"+appId.toString());
+    zk.deleteRecursive("/hadoop-watershed/"+appId.toString()); //TODO remove app folder from ZooKeeper
   }
 
   private void uploadFile(FileSystem fs, File file, ApplicationId appId) throws IOException {

@@ -1,6 +1,5 @@
 package hws.channel.net;
 
-import java.io.*; //TODO debug
 import java.io.IOException;
 
 import java.net.Socket;
@@ -23,6 +22,7 @@ import com.google.gson.reflect.TypeToken;
 import org.apache.zookeeper.KeeperException;
 
 import hws.util.Json;
+import hws.util.Logger;
 
 import hws.net.MessageHandler;
 
@@ -31,25 +31,22 @@ import hws.core.ChannelDeliver;
 
 class KVMessageDeliver extends MessageHandler {
    private ChannelDeliver deliver;
-   private PrintWriter out;
 
-   public KVMessageDeliver(ChannelDeliver deliver, PrintWriter out){
+   public KVMessageDeliver(ChannelDeliver deliver){
       this.deliver = deliver;
-      this.out = out;
    }
 
    public void handleMessage(String msg){
       //SimpleEntry<String, String> data = Json.loads(msg, new TypeToken< SimpleEntry<String, String> >() {}.getType());
-      out.println("received: "+msg);
+      //out.println("received: "+msg);
       byte[] dataBytes = Base64.decodeBase64(msg);
       Object data = SerializationUtils.deserialize(dataBytes);
-      out.println("data received: "+data.toString());
+      //out.println("data received: "+data.toString());
       this.deliver.deliver(data);
    }
 }
 
 public class KeyValueDeliver extends ChannelDeliver {
-   private PrintWriter out;
 
    private ExecutorService serverExecutor;
    private ServerSocket server;
@@ -58,72 +55,59 @@ public class KeyValueDeliver extends ChannelDeliver {
    public void start(){
       super.start();
 
-      try{
-         out = new PrintWriter(new BufferedWriter(new FileWriter("/home/hadoop/rcor/yarn/channel-deliver-"+channelName()+".out")));
-         out.println("Starting channel deliver: "+channelName()+" instance "+instanceId());
-         out.flush();
-      }catch(IOException e){
-         e.printStackTrace();
-      }
+      Logger.info("Starting channel deliver: "+channelName()+" instance "+instanceId());
 
       this.latch = new CountDownLatch(1);
       serverExecutor = Executors.newCachedThreadPool();
       try{
-         out.println("Binding to a listening port");
-         out.flush();
+         Logger.info("Binding to a listening port");
          server = new ServerSocket(0);
       }catch(IOException e){
-         e.printStackTrace();
+         Logger.severe(e.toString());
       }
 
       int port = server.getLocalPort();
-      out.println("Connected to port: "+port);
-      out.flush();
+      Logger.info("Connected to port: "+port);
       try{
-         out.println("Host: "+hws.net.NetUtil.getLocalCanonicalHostName());
-         out.flush();
+         Logger.info("Host: "+hws.net.NetUtil.getLocalCanonicalHostName());
          shared().set("host-"+instanceId(), hws.net.NetUtil.getLocalCanonicalHostName());
          shared().set("port-"+instanceId(), new Integer(port));
       }catch(UnknownHostException e){
-         e.printStackTrace();
+         Logger.severe(e.toString());
       }
-      out.println("Running server, waiting for a close command");
-      out.flush();
+      Logger.info("Running server, waiting for a close command");
       while(this.latch.getCount()>0){
          try{
-            KVMessageDeliver handler = new KVMessageDeliver(this, out);
+            KVMessageDeliver handler = new KVMessageDeliver(this);
             handler.setSocket(this.server.accept());
             serverExecutor.execute( handler );
          }catch(IOException e){
-            e.printStackTrace();
+            Logger.severe(e.toString());
          }
       }
    }
 
    public void finish(){
+      Logger.info("Finishing KeyValueDeliver");
       try {
          this.latch.await(); //await server channel to be closed
       }catch(InterruptedException e){
          // handle
-         out.println("Waiting ERROR: "+e.getMessage());
-         out.flush();
+         Logger.severe("Waiting ERROR: "+e.getMessage());
       }
-      out.close();
       super.finish();
    }
 
    public void onProducersHalted(){
-      out.println("Closing server channel");
-      out.flush();
+      Logger.info("Closing server channel");
       this.latch.countDown();
       try{
          this.server.close();
       }catch(IOException e){
-         e.printStackTrace();
+         Logger.warning(e.toString());
       }
 
       halt();
-      out.println("Closing command completed");
-      out.flush();
+      Logger.info("Closing command completed");
    }
 }

@@ -123,6 +123,7 @@ public abstract class ChannelDeliver extends DefaultExecutor {
         return this.shared;
     }
 
-//EVENTS   
-	public abstract void onProducersHalted();
+//EVENTS
+    public void onProducersHalted(){
+    }
 }

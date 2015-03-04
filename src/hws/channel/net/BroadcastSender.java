@@ -9,6 +9,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.zookeeper.KeeperException;
 
 import hws.net.NodeCommunicator;
+import hws.util.Logger;
 
 public class BroadcastSender extends NetSender {
    public void send(Object obj){
@@ -23,9 +24,9 @@ public class BroadcastSender extends NetSender {
                comm.writeLine(dataBase64);
                comm.flush();
             }catch(IOException e){
-               e.printStackTrace();
+               Logger.severe(e.toString());
             }
-         }
+         }else Logger.warning("NULL communicator for consumer id: "+i);
       }
    }
 }

@@ -52,6 +52,7 @@ import org.apache.commons.logging.LogFactory;
 
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.fs.LocatedFileStatus;
@@ -78,7 +79,7 @@ import hws.core.info.InstanceInfo;
 import hws.core.info.ModulePipeline;
 
 import hws.util.Json;
-
+import hws.util.Logger;
 
 /**
  * This class implements a simple async app master.
@@ -116,23 +117,28 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
         this.haltedProducers = new ConcurrentHashMap<String, List<String>>();
         this.zksArgs = zksArgs;
         this.zkServers = zkServers;
+        //Logger setup
+        try{
+           FSDataOutputStream writer = FileSystem.get(configuration).create(new Path("hdfs:///hws/apps/"+appIdStr+"/logs/jobMaster.log"));
+           Logger.addOutputStream(writer);
+        }catch(IOException e){
+           //e.printStackTrace();
+        }
+
         zk = new ZkClient(zkServers[0]); //TODO choose the ZooKeeper server
     }
 
     public void onContainersAllocated(List<Container> containers) {
         FileSystem fs = null;
-        PrintWriter out = null;
         try{
         fs = FileSystem.get(getConfiguration());
-        out = new PrintWriter(new BufferedWriter(new FileWriter("/home/hadoop/rcor/yarn/app-master-log.out")));
         }catch(IOException e){
            e.printStackTrace();
         }
         for (Container container : containers) {
             try{
-               //PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter("/home/hadoop/rcor/yarn/app-master-log.out")));
-               out.println("Selecting instance to build");
-               out.flush();
+               //PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter("/home/yarn/rcor/yarn/app-master-log.out")));
+               Logger.info("Selecting instance to container: "+container.getId().toString());
                //dado o container, escolher a instancia que tem dado de entrada mais perto daquele container
                InstanceInfo instanceInfo = null;
                if(instances.get(modulePipeline.get(currentModuleIndex).filterInfo().name()).instancesBuilt()>=modulePipeline.get(currentModuleIndex).numFilterInstances()){
@@ -142,8 +148,6 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
                   instanceInfo = instances.get(modulePipeline.get(currentModuleIndex).filterInfo().name()).build();
                }else break;
 
-                out.println("Encoding instance info to json-base64");
-                out.flush();
                 String instanceInfoBase64 = Base64.encodeBase64String(StringUtils.getBytesUtf8(Json.dumps(instanceInfo))).replaceAll("\\s","");
                 // Launch container by create ContainerLaunchContext
                 ContainerLaunchContext ctx =
@@ -152,21 +156,16 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
                         Collections.singletonList(
                                 "$JAVA_HOME/bin/java -Xmx256M hws.core.InstanceDriver --load " + instanceInfoBase64 +
                                         " -aid " + this.appIdStr +
+                                        " -cid " + container.getId().toString() +
                                         " " + this.zksArgs +
                                         " 1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stdout" +
                                         " 2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stderr"
                         ));
-                out.println("Creating FileSystem");
-                out.flush();
 
-                //FileSystem fs = FileSystem.get(getConfiguration());
-
-                out.println("Listing YARN-Watershed files for app-id: "+this.appIdStr);
-                out.flush();
+                Logger.info("Listing YARN-Watershed files for app-id: "+this.appIdStr);
                 RemoteIterator<LocatedFileStatus> files = fs.listFiles(new Path("hdfs:///hws/bin/"), false);
                 Map<String, LocalResource> resources = new HashMap<String, LocalResource>();
-                out.println("Setup YARN-Watershed files as resources");
-                out.flush();
+                Logger.info("Setup YARN-Watershed files as resources");
                 while(files.hasNext()){
                    LocatedFileStatus fileStatus = files.next();
                    // Setup jar for ApplicationMaster
@@ -175,11 +174,9 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
                    resources.put(fileStatus.getPath().getName(), containerJar);
                 }
 
-                out.println("Listing application files for app-id: "+this.appIdStr);
-                out.flush();
+                Logger.info("Listing application files for app-id: "+this.appIdStr);
                 files = fs.listFiles(new Path("hdfs:///hws/apps/"+this.appIdStr+"/"), false);
-                out.println("Setup application files as resources");
-                out.flush();
+                Logger.info("Setup application files as resources");
                 while(files.hasNext()){
                    LocatedFileStatus fileStatus = files.next();
                    // Setup jar for ApplicationMaster
@@ -187,24 +184,19 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
                    ContainerUtils.setupContainerJar(fs, fileStatus.getPath(), containerJar);
                    resources.put(fileStatus.getPath().getName(), containerJar);
                 }
-                out.println("container resource setup");
-                out.flush();
+                Logger.info("container resource setup");
                 ctx.setLocalResources(resources);
 
-                out.println("Environment setup");
-                out.flush();
+                Logger.info("Environment setup");
                 // Setup CLASSPATH for ApplicationMaster
                 Map<String, String> containerEnv = new HashMap<String, String>();
                 ContainerUtils.setupContainerEnv(containerEnv, getConfiguration());
                 ctx.setEnvironment(containerEnv);
-                out.println("Starting containers");
-                //out.close();
+                Logger.info("Starting containers");
 
-                //fs.close();
-                System.out.println("[AM] Launching container " + container.getId());
+                Logger.info("[AM] Launching container " + container.getId());
                 nmClient.startContainer(container, ctx);
-                out.println("Container started!");
-                out.flush();
+                Logger.info("Container started!");
                 /*String znode = "/hadoop-watershed/"+this.appIdStr+"/"+instanceInfo.filterInfo().name()+"/"+instanceInfo.instanceId();
                 out.println("Saving instance znode: "+znode);
                 out.flush();
@@ -214,29 +206,24 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
                 out.flush();
                 */
                 if(instances.get(modulePipeline.get(currentModuleIndex).filterInfo().name()).instancesBuilt()>=modulePipeline.get(currentModuleIndex).numFilterInstances()){
-                   out.println("starting via ZooKeeper filter: "+instanceInfo.filterInfo().name());
-                   out.flush();
+                   Logger.info("Starting via ZooKeeper filter: "+instanceInfo.filterInfo().name());
                    zk.createPersistent("/hadoop-watershed/"+this.appIdStr+"/"+instanceInfo.filterInfo().name()+"/start", "");
-                   out.println("Filter started");
-                   out.flush();
                 }
                 //out.close();
             } catch (Exception e) {
-                System.err.println("[AM] Error launching container " + container.getId() + " " + e);
+                Logger.severe("[AM] Error launching container " + container.getId() + " " + e);
             }
         }
         try{
            fs.close();
         }catch(IOException e){
-           out.println("ERROR: "+e.getMessage());
-           out.flush();
+           Logger.severe(e.toString());
         }
-        out.close();
     }
 
     public void onContainersCompleted(List<ContainerStatus> statuses) {
         for (ContainerStatus status : statuses) {
-            System.out.println("[AM] Completed container " + status.getContainerId());
+            Logger.info("[AM] Completed container " + status.getContainerId());
             synchronized (this) {
                 numContainersToWaitFor--;
             }
@@ -292,7 +279,7 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
         CommandLineParser parser = new BasicParser();
         CommandLine cmd = parser.parse(options, args);
 
-		String appIdStr = null;
+	String appIdStr = null;
         String modulePipelineBase64 = null;
         String modulePipelineJson = null;
         ModulePipeline modulePipeline = null;
@@ -318,13 +305,10 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
         }
 
         ApplicationMasterAsync master = new ApplicationMasterAsync(modulePipeline, appIdStr, zksArgs, zkServers);
+
         if(modulePipelineJson!=null){
-           LOG.info("Load Module Pipeline: "+modulePipelineJson);
-           PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter("/home/hadoop/rcor/yarn/app-master.out")));
-           out.println("Module Pipeline base 64: "+modulePipelineBase64);
-           out.println("Load Module Pipeline: "+modulePipelineJson);
-           out.println("Instances: "+Json.dumps(modulePipeline.instances()));
-           out.close();
+           Logger.info("Module Pipeline: "+modulePipelineJson);
+           Logger.info("Instances: "+Json.dumps(modulePipeline.instances()));
         }
         master.runMainLoop();
     }
@@ -338,49 +322,42 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
                if(currentChilds.size()==_numFilterInstances){
                   //TODO if all producers for a input port have halted, send a signal znode(/hadoop-watershed/appId/consumerFilter/halted/channelName) to all consumers
                   try{
-                     PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter("/home/hadoop/rcor/yarn/finished-"+_filterName+".out")));
-                     out.println(parentPath);
+                     Logger.info("Halting producer filter "+_filterName);
+                     Logger.info(parentPath);
+                     String str = "";
                      for(String child: currentChilds){
-                        out.print(child+";");
+                        str += child+";";
                      }
-                     out.println();
-                     out.flush();
-                     out.println("Halting producer: "+_filterName);
-                     out.flush();
+                     Logger.info(str);
+                     
                      for(String channelName: modulePipeline.get(_filterName).outputChannels().keySet()){
                         if(!haltedProducers.containsKey(channelName)){
                            haltedProducers.put(channelName, new ArrayList<String>());
                         }
-                        out.println("Halting producer for channel: "+channelName);
-                        out.flush();
+                        Logger.info("Halting producer for channel: "+channelName);
                         haltedProducers.get(channelName).add(_filterName);
-                        out.println("added to halted list");
-                        out.flush();
-                        out.println("halted producers size: "+haltedProducers.get(channelName).size());
-                        out.flush();
-                        if(modulePipeline.outputBindings()==null){out.println("outputbindings null");out.flush();}
-                        if(modulePipeline.outputBindings().get(channelName)==null){out.println("outputbindings channel null");out.flush();}
-                        out.println("output bindings size: "+modulePipeline.outputBindings().get(channelName).size());
-                        out.flush();
+                        Logger.info("Halted producers: "+Json.dumps(haltedProducers));
+                        if(modulePipeline.outputBindings()==null){ Logger.info("outputbindings null"); }
+                        if(modulePipeline.outputBindings().get(channelName)==null){ Logger.info("outputbindings channel null"); }
+                        Logger.info("Output bindings size: "+modulePipeline.outputBindings().get(channelName).size());
+                        Logger.info("Output bindings: "+Json.dumps(modulePipeline.outputBindings().get(channelName)));
                         if(haltedProducers.get(channelName).size()==modulePipeline.outputBindings().get(channelName).size()){
-                           out.println("all producers halted");
-                           if(modulePipeline.inputBindings()==null){out.println("inputbindings null");out.flush();}
-                           if(modulePipeline.inputBindings().get(channelName)==null){out.println("inputbindings channel null");out.flush();}
+                           Logger.info("All producers halted");
+                           if(modulePipeline.inputBindings()==null){Logger.info("inputbindings null");}
+                           if(modulePipeline.inputBindings().get(channelName)==null){Logger.info("inputbindings channel null");}
                            if(modulePipeline.inputBindings().get(channelName)!=null){
                               for(String consumerName: modulePipeline.inputBindings().get(channelName)){
-                                 out.println("Sending signal for consumer: "+consumerName);
-                                 out.flush();
+                                 Logger.info("Sending signal for consumer: "+consumerName);
                                  zk.createPersistent("/hadoop-watershed/"+appIdStr+"/"+consumerName+"/halted/"+channelName, "");
-                                 out.println("signal sent");
-                                 out.flush();
                               }
                            }
                         }
                      }
-                     out.println("Producer halted");
-                     out.close();
+                     Logger.info("Producer halted: "+_filterName);
                      _doneLatch.countDown();
-                  }catch(Exception e){}
+                  }catch(Exception e){
+                        Logger.severe(e.toString());
+                  }
                }
            }
        };
@@ -395,9 +372,9 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
         rmClient.start();
 
         // Register with ResourceManager
-        System.out.println("[AM] registerApplicationMaster 0");
+        Logger.info("[AM] registerApplicationMaster 0");
         rmClient.registerApplicationMaster("", 0, "");
-        System.out.println("[AM] registerApplicationMaster 1");
+        Logger.info("[AM] registerApplicationMaster 1");
 
         // Priority for worker containers - priorities are intra-application
         Priority priority = Records.newRecord(Priority.class);
@@ -418,7 +395,7 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
            for(int i = 0; i<moduleInfo.numFilterInstances(); i++){
               this.numContainersToWaitFor++;
               ContainerRequest containerAsk = new ContainerRequest(capability, null, null, priority);
-              System.out.println("[AM] Making res-req for " +moduleInfo.filterInfo().name()+" "+ i);
+              Logger.info("[AM] Making res-req for " +moduleInfo.filterInfo().name()+" "+ i);
               rmClient.addContainerRequest(containerAsk);
            }
         }
@@ -430,11 +407,12 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
         //    * if there is cycle, then inicially start in any order
         //TODO "send" the start signal via ZooKeeper
 
-        System.out.println("[AM] waiting for containers to finish");
+        Logger.info("[AM] waiting for containers to finish");
         try {
            doneLatch.await(); //await the input threads to finish
         }catch(InterruptedException e){
-           e.printStackTrace();
+           Logger.fatal(e.toString());
+           //e.printStackTrace();
         }
         /*while(!doneWithContainers()) {
             Thread.sleep(50);
@@ -442,10 +420,10 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
 
         zk.createPersistent("/hadoop-watershed/"+appIdStr+"/done", "");
 
-        System.out.println("[AM] unregisterApplicationMaster 0");
+        Logger.info("[AM] unregisterApplicationMaster 0");
         // Un-register with ResourceManager
         rmClient.unregisterApplicationMaster(
                 FinalApplicationStatus.SUCCEEDED, "", "");
-        System.out.println("[AM] unregisterApplicationMaster 1");
+        Logger.info("[AM] unregisterApplicationMaster 1");
     }
 }

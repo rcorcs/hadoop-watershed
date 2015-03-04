@@ -15,30 +15,30 @@
  * limitations under the License.
  */
 
-package sample;
+package sample.wordcount;
 
 import java.io.*;
 
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.AbstractMap.SimpleEntry;
 
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 import hws.core.Filter;
 import hws.util.Json;
+import hws.util.Logger;
 
-public class Reducer extends Filter<SimpleEntry<String, String>, String>{
+public class Adder extends Filter{
    private PrintWriter out;
    private Map<String, Integer> counts;
+   private final Lock lock = new ReentrantLock();
 
    public void start(){
       super.start();
-      try{
-         out = new PrintWriter(new BufferedWriter(new FileWriter("/home/hadoop/rcor/yarn/filter-"+name()+".out")));
-         out.println("Starting Filter: "+name()+" instance "+instanceId());
-         out.flush();
-      }catch(IOException e){
-         e.printStackTrace();
-      }
+      Logger.info("Starting Filter: "+name()+" instance "+instanceId());
       counts = new ConcurrentHashMap<String, Integer>();
    }
 
@@ -51,27 +51,28 @@ public class Reducer extends Filter<SimpleEntry<String, String>, String>{
 
       super.finish();
       //try{
-      out.println("Finishing Filter: "+name()+" instance "+instanceId());
-      out.flush();
-      out.close();
+      Logger.info("Finishing Filter: "+name()+" instance "+instanceId());
       /*}catch(IOException e){
         e.printStackTrace();
         }*/
    }
 
-   public void process(String src, SimpleEntry<String, String> data){
+   public void process(String src, Object obj){
+     Entry<String, String> data = (Entry<String, String>)obj;
 //   public void process(String src, Object obj){
 //      SimpleEntry<String, String> data = (SimpleEntry<String, String>)obj;
-      out.println("processing "+src+" : "+Json.dumps(data));
-      out.flush();
       String word = data.getKey().toLowerCase();
       int val = Integer.parseInt(data.getValue());
+      try{lock.lock();
       if(counts.containsKey(word)){
          counts.put(word, new Integer(val+counts.get(word).intValue()));
       }else {
          counts.put(word, new Integer(val));
       }
+      }finally{lock.unlock();}
    }
-   public void onChannelHalt(String channelName){}
+   public void onChannelHalt(String channelName){
+      Logger.info("Input Channel Halted: "+channelName);
+   }
    public void onChannelsHalted(){}
 }

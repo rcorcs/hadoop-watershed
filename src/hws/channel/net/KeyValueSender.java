@@ -1,6 +1,5 @@
 package hws.channel.net;
 
-import java.io.*;
 import java.io.IOException;
 import java.io.Serializable;
 
@@ -12,32 +11,33 @@ import org.apache.commons.codec.binary.Base64;
 
 import hws.net.NodeCommunicator;
 import hws.util.Json;
+import hws.util.Logger;
 
 public class KeyValueSender extends NetSender {
-   private PrintWriter out;
    public void start(){
       super.start();
-      try{
-         out = new PrintWriter(new BufferedWriter(new FileWriter("/home/hadoop/rcor/yarn/channel-sender-"+channelName()+".out")));
-         out.println("Starting channel sender: "+channelName()+" instance "+instanceId());
-         out.flush();
-      }catch(IOException e){
-         e.printStackTrace();
-      }
-
-
+      Logger.info("Starting channel sender: "+channelName()+" instance "+instanceId());
    }
    public void finish(){
-      out.close();
+      Logger.info("Finishing channel sender: "+channelName()+" instance "+instanceId());
       super.finish();
    }
    public void send(Object obj){
       int key;
+      //out.println("Channel sending: "+Json.dumps(obj));
+      //out.flush();
       if(obj instanceof Entry){
+         //out.println("Is Entry: "+((Entry<?,?>)obj).getKey().toString());
+         //out.flush();
          key = ((Entry<?,?>)obj).getKey().hashCode()%numConsumerInstances();
-      }else key = obj.hashCode()%numConsumerInstances();
-      out.println("Channel sending: "+Json.dumps(obj)+" to "+key);
-      out.flush();
+      }else {
+         //out.println("Is NOT Entry");
+         //out.flush();
+         key = obj.hashCode()%numConsumerInstances();
+      }
+      if(key<0){
+         key = Math.abs(key)%numConsumerInstances();
+      }
       NodeCommunicator comm = getCommunicator(key);
       if(comm!=null){
          try{
@@ -49,7 +49,7 @@ public class KeyValueSender extends NetSender {
             //Logger.info("sending: "+key+": "+json);
             //comm.flush();
          }catch(IOException e){
-            e.printStackTrace();
+            Logger.warning(e.toString());
          }
       }
    }

@@ -38,6 +38,12 @@ import org.I0Itec.zkclient.ZkClient;
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
 
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.conf.Configuration;
+
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.OptionBuilder;
@@ -55,14 +61,15 @@ import hws.core.info.FilterInfo;
 import hws.core.info.OutputChannelInfo;
 import hws.core.info.InputChannelInfo;
 import hws.util.Json;
+import hws.util.Logger;
 
 class ExecutorThread<ExecutorType extends DefaultExecutor>  extends Thread {
-	private ExecutorType executor;
+    private ExecutorType executor;
     private List<DefaultExecutor> startingOrder;
     private CountDownLatch latch;
     private ZkClient zk;
     private String finishZnode;
-   
+
 	public ExecutorThread(ExecutorType executor, List<DefaultExecutor> startingOrder, CountDownLatch latch, ZkClient zk, String finishZnode){
 		this.executor = executor;
         this.startingOrder = startingOrder;
@@ -72,17 +79,20 @@ class ExecutorThread<ExecutorType extends DefaultExecutor>  extends Thread {
 	}
 
 	public void run(){
+        Logger.info("Starting stream processing pipeline");
         for(DefaultExecutor defaultExecutor: this.startingOrder){
             defaultExecutor.start();
         }
-        
+        Logger.info("Finishing stream processing pipeline");
         ListIterator<DefaultExecutor> li = this.startingOrder.listIterator(this.startingOrder.size());
         while(li.hasPrevious()){
             DefaultExecutor defaultExecutor = li.previous();
             defaultExecutor.finish();
         }
-        zk.createPersistent(finishZnode, "");
+        //zk.createPersistent(finishZnode, "");
+        Logger.info("Latch Counting Down.");
         this.latch.countDown();
+        Logger.info("End of ExecutorThread");
 		//this.executor.start();
 		//this.executor.finish();
         
@@ -104,7 +114,6 @@ public class InstanceDriver {
     private List<String> haltedInputs;
     private CountDownLatch latch;
 
-    private PrintWriter out;
 
     public InstanceDriver(){
        this.outputStartingOrder = new ArrayList<DefaultExecutor>();
@@ -124,6 +133,11 @@ public class InstanceDriver {
                                    .hasArg()
                                    .withArgName("AppId")
                                    .create("aid"));
+        options.addOption(OptionBuilder.withLongOpt("container-id")
+                                   .withDescription( "String of the Container Id" )
+                                   .hasArg()
+                                   .withArgName("ContainerId")
+                                   .create("cid"));
         options.addOption(OptionBuilder.withLongOpt( "load" )
                                        .withDescription( "load module instance" )
                                        .hasArg()
@@ -138,12 +152,16 @@ public class InstanceDriver {
         CommandLine cmd = parser.parse(options, args);
 
         String appIdStr = null;
+        String containerIdStr = null;
         String instanceInfoBase64 = null;
         String instanceInfoJson = null;
         InstanceInfo instanceInfo = null;
 
         if(cmd.hasOption("aid")){
            appIdStr = cmd.getOptionValue("aid");
+        }
+        if(cmd.hasOption("cid")){
+           containerIdStr = cmd.getOptionValue("cid");
         }
         String zksArgs = "";
         String []zkServers = null;
@@ -154,29 +172,34 @@ public class InstanceDriver {
               zksArgs += " "+zks;
            }
         }
+
+        //Logger setup
+        Configuration conf = new Configuration();
+        FileSystem fileSystem = FileSystem.get(conf);
+        FSDataOutputStream writer = fileSystem.create(new Path("hdfs:///hws/apps/"+appIdStr+"/logs/"+containerIdStr+".log"));
+        Logger.addOutputStream(writer);
+
+        Logger.info("Processing Instance");
+
         if(cmd.hasOption("load")){
            instanceInfoBase64 = cmd.getOptionValue("load");
            instanceInfoJson = StringUtils.newStringUtf8(Base64.decodeBase64( instanceInfoBase64 ));
            instanceInfo = Json.loads(instanceInfoJson, InstanceInfo.class);
         }
 
+        Logger.info("Instance info: "+instanceInfoJson);
+
         this.latch = new CountDownLatch(instanceInfo.inputChannels().keySet().size());
+        Logger.info("Latch Countdowns: "+instanceInfo.inputChannels().keySet().size());
 
         ZkClient zk = new ZkClient(zkServers[0]); //TODO select a ZooKeeper server
 
-        out = new PrintWriter(new BufferedWriter(new FileWriter("/home/hadoop/rcor/yarn/instance-driver.out")));
-        out.println("Decoding instance info: "+instanceInfoBase64);
-        out.flush();
-        out.println("Instance info: "+instanceInfoJson);
-        out.flush();
+        Logger.info("Load Instance "+instanceInfo.instanceId());
         loadInstance(instanceInfo, zk, "/hadoop-watershed/"+appIdStr+"/");
-        out.println("Load Instance "+instanceInfo.instanceId());
-        out.flush();
 
         IZkChildListener producersHaltedListener = createProducersHaltedListener();
         String znode = "/hadoop-watershed/"+appIdStr+"/"+instanceInfo.filterInfo().name()+"/halted";
-        out.println("znode: "+znode);
-        out.flush();
+        Logger.info("halting znode: "+znode);
         zk.subscribeChildChanges(znode, producersHaltedListener);
 
         ExecutorService serverExecutor = Executors.newCachedThreadPool();
@@ -184,38 +207,33 @@ public class InstanceDriver {
 
         //wait for a start command from the ApplicationMaster via ZooKeeper
         znode = "/hadoop-watershed/"+appIdStr+"/"+instanceInfo.filterInfo().name()+"/start";
-        out.println("znode: "+znode);
-        out.flush();
+        Logger.info("starting znode: "+znode);
         zk.waitUntilExists(znode, TimeUnit.MILLISECONDS, 250);
-        out.println("Exists: "+zk.exists(znode));
-        out.flush();
+        Logger.info("Exists: "+zk.exists(znode));
         /*
         while(!zk.waitUntilExists(znode,TimeUnit.MILLISECONDS, 500)){
            //out.println("TIMEOUT waiting for start znode: "+znode);
            //out.flush();
         }*/
         //start and execute this instance
-        out.println("Starting Instance");
+        Logger.info("Starting Instance");
         startExecutors(serverExecutor);
-        out.println("Instance STARTED");
-        out.flush();
+        Logger.info("Instance STARTED");
 
-        out.println("Waiting TERMINATION");
-        out.flush();
+        Logger.info("Waiting TERMINATION");
 
         try {
            this.latch.await(); //await the input threads to finish
         }catch(InterruptedException e){
            // handle
-           out.println("Waiting ERROR: "+e.getMessage());
-           out.flush();
+           Logger.info("Waiting ERROR: "+e.getMessage());
         }
-
-        out.println("Finishing Instance");
-        out.flush();
+        
+        Logger.info("Finishing Instance");
         finishExecutors();
-        out.println("FINISHED Instance "+instanceInfo.instanceId());
-        out.close();
+        Logger.info("FINISHED Instance "+instanceInfo.instanceId());
+        String finishZnode = "/hadoop-watershed/"+appIdStr+"/"+instanceInfo.filterInfo().name()+"/finish/"+instanceInfo.instanceId();
+        zk.createPersistent(finishZnode, "");
     }
 
     private void startExecutors(ExecutorService serverExecutor){
@@ -323,10 +341,8 @@ public class InstanceDriver {
     public IZkChildListener createProducersHaltedListener(){
        IZkChildListener childListener = new IZkChildListener(){
            public void handleChildChange(String parentPath, List<String> currentChilds) throws Exception{
-              out.println("currentChilds: "+Json.dumps(currentChilds));
-              out.flush();
-              out.println("haltedInputs: "+Json.dumps(haltedInputs));
-              out.flush();
+              Logger.info("currentChilds: "+Json.dumps(currentChilds));
+              Logger.info("haltedInputs: "+Json.dumps(haltedInputs));
                for(String child: currentChilds){
                    if(!haltedInputs.contains(child)){
                        haltedInputs.add(child);

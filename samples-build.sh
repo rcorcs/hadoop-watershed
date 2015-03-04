@@ -1,13 +1,15 @@
 mkdir classes
-YARNCP=$YARN_HOME/share/hadoop/yarn/hadoop-yarn-common-2.2.0.jar
-YARNCP=$YARNCP:$YARN_HOME/share/hadoop/yarn/hadoop-yarn-api-2.2.0.jar
-YARNCP=$YARNCP:$YARN_HOME/share/hadoop/yarn/hadoop-yarn-client-2.2.0.jar
-YARNCP=$YARNCP:$YARN_HOME/share/hadoop/common/hadoop-common-2.2.0.jar
-YARNCP=$YARNCP:$YARN_HOME/share/hadoop/common/lib/commons-logging-1.1.1.jar
-YARNCP=$YARNCP:$YARN_HOME/share/hadoop/common/lib/commons-cli-1.2.jar
-YARNCP=$YARNCP:$YARN_HOME/share/hadoop/common/lib/commons-io-2.1.jar
-YARNCP=$YARNCP:$YARN_HOME/share/hadoop/common/lib/commons-codec-1.4.jar
-YARNCP=$YARNCP:$YARN_HOME/share/hadoop/hdfs/hadoop-hdfs-2.2.0.jar
+YARNCP=$HADOOP_HOME/share/hadoop/yarn/hadoop-yarn-common-2.6.0.jar
+YARNCP=$YARNCP:$HADOOP_HOME/share/hadoop/yarn/hadoop-yarn-api-2.6.0.jar
+YARNCP=$YARNCP:$HADOOP_HOME/share/hadoop/yarn/hadoop-yarn-client-2.6.0.jar
+YARNCP=$YARNCP:$HADOOP_HOME/share/hadoop/common/hadoop-common-2.6.0.jar
+YARNCP=$YARNCP:$HADOOP_HOME/share/hadoop/common/lib/commons-logging-1.1.3.jar
+YARNCP=$YARNCP:$HADOOP_HOME/share/hadoop/common/lib/commons-cli-1.2.jar
+YARNCP=$YARNCP:$HADOOP_HOME/share/hadoop/common/lib/commons-io-2.4.jar
+YARNCP=$YARNCP:$HADOOP_HOME/share/hadoop/common/lib/commons-codec-1.4.jar
+YARNCP=$YARNCP:$HADOOP_HOME/share/hadoop/common/lib/commons-lang-2.6.jar
+YARNCP=$YARNCP:$HADOOP_HOME/share/hadoop/hdfs/hadoop-hdfs-2.6.0.jar
+YARNCP=$YARNCP:$HADOOP_HOME/share/hadoop/tools/lib/commons-math3-3.1.1.jar
 
 CPFILES=$YARNCP:./hws.jar
 for f in $(find ./lib/ -name "*.jar"); do

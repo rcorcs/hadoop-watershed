@@ -17,7 +17,8 @@
 
 package hws.channel.hdfs;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.EOFException;
 
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -35,9 +36,9 @@ import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
 import hws.core.ChannelDeliver;
+import hws.util.Logger;
 
 public class LineReader extends ChannelDeliver{
-   private PrintWriter out;
    private FileSystem fileSystem;
    private FSDataInputStream reader;
    private Map<String, FileStatus> files;
@@ -50,13 +51,7 @@ public class LineReader extends ChannelDeliver{
 
    public void start(){
       super.start();
-      try{
-         out = new PrintWriter(new BufferedWriter(new FileWriter("/home/hadoop/rcor/yarn/channel-deliver-"+channelName()+".out")));
-         out.println("Starting channel deliver: "+channelName()+" instance "+instanceId());
-         out.flush();
-      }catch(IOException e){
-         e.printStackTrace();
-      }
+      Logger.info("Starting channel deliver: "+channelName()+" instance "+instanceId());
 
       files = new HashMap<String, FileStatus>();
       fileSet = new TreeSet<String>();
@@ -65,14 +60,14 @@ public class LineReader extends ChannelDeliver{
          Configuration conf = new Configuration();
          //conf.setBoolean("fs.hdfs.impl.disable.cache", true);
          fileSystem = FileSystem.get(conf);
-
+         //partition or not the file among the instances
+         boolean partition = !("false".equals(attribute("partition")));
          String pathAttr = attribute("path");
          //check if starts with "hdfs://"
          if(!pathAttr.startsWith("hdfs://")){
             pathAttr = "hdfs://"+pathAttr;
          }
-         out.println("Opening path: " + pathAttr);
-         out.flush();
+         Logger.info("Opening path: " + pathAttr);
          Path path = new Path(pathAttr);
          ///reader = fileSystem.open(path);
 
@@ -86,10 +81,8 @@ public class LineReader extends ChannelDeliver{
                totalBytes += status[i].getLen();
                fileSet.add(status[i].getPath().getName());
                files.put(status[i].getPath().getName(), status[i]);
-               out.println("fileLen: " + status[i].getLen());
-               out.flush();
-               out.println("file path: "+status[i].getPath().toString());
-               out.flush();
+               Logger.info("fileLen: " + status[i].getLen());
+               Logger.info("file path: "+status[i].getPath().toString());
             }
          }else{
             //a file
@@ -97,27 +90,27 @@ public class LineReader extends ChannelDeliver{
             files.put(path.getName(), status);
             fileSet.add(path.getName());
             totalBytes = status.getLen();
-            out.println("fileLen: " + status.getLen());
-            out.flush();
-            out.println("file path: "+status.getPath().toString());
-            out.flush();
+            Logger.info("fileLen: " + status.getLen());
+            Logger.info("file path: "+status.getPath().toString());
          }
 
-         //split
-         int split = (int)Math.ceil((double)(totalBytes)/(double)(super.numFilterInstances()));
-         beginPos = (super.instanceId())*split;
-         endPos = (super.instanceId()+1)*split;
+         if(partition){
+            //split
+            int split = (int)Math.ceil((double)(totalBytes)/(double)(super.numFilterInstances()));
+            beginPos = (super.instanceId())*split;
+            endPos = (super.instanceId()+1)*split;
+            Logger.info("split: "+split);
+         }else{
+            beginPos = 0;
+            endPos = totalBytes;
+            Logger.info("Reading full file: "+totalBytes);
+         }
 
          pos = beginPos;
 
-         out.println("split: "+split);
-         out.flush();
-         out.println("beginPos: "+beginPos);
-         out.flush();
-         out.println("endPos: "+endPos);
-         out.flush();
-         out.println("pos: "+pos);
-         out.flush();
+         Logger.info("beginPos: "+beginPos);
+         Logger.info("endPos: "+endPos);
+         Logger.info("pos: "+pos);
 
          //loading first file
          nextFile();
@@ -126,15 +119,11 @@ public class LineReader extends ChannelDeliver{
          String line = readLine();
 
          while( line != null ){
-            out.println("processing line: "+line);
-            out.flush();
             deliver( line );
             line = readLine();
          }
       }catch(IOException e){
-         out.println("EXCEPTION: "+e.getMessage());
-         out.flush();
-         e.printStackTrace();
+         Logger.severe("EXCEPTION: "+e.toString());
       }
    }
 
@@ -215,10 +204,9 @@ public class LineReader extends ChannelDeliver{
 
    public void finish(){
       super.finish();
-      out.println("attribute: 'wait' = "+attribute("wait"));
+      Logger.info("attribute: 'wait' = "+attribute("wait"));
       if("true".equals(attribute("wait"))){
-         out.println("Waiting for producers to end");
-         out.flush();
+         Logger.info("Waiting for producers to end");
          /*try {
          //latch.await(); //await the input threads to finish
          }catch(InterruptedException e){
@@ -228,16 +216,13 @@ public class LineReader extends ChannelDeliver{
          }*/
       }
       //try{
-      out.println("Finishing channel deliver: "+channelName()+" instance "+instanceId());
-      out.flush();
-      out.close();
+      Logger.info("Finishing channel deliver: "+channelName()+" instance "+instanceId());
       /*}catch(IOException e){
         e.printStackTrace();
         }*/
    }
 
    public void onProducersHalted(){
-      out.println("PRODUCERS HALTED!!");
-      out.flush();
+      Logger.info("PRODUCERS HALTED!!");
    }
 }
