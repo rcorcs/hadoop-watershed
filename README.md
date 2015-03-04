@@ -33,6 +33,5 @@ The batch processing model incorporated by Hadoop Watershed is based on the Anth
 - [AnthillSched: A Scheduling Strategy for Irregular and Iterative I/O-Intensive Parallel Jobs](http://homepages.dcc.ufmg.br/~pcalais/papers/JSSPP.pdf)
 
 ### Applications
-- [Twig: An Adaptable and Scalable Distributed FPGrowth](http://homepages.dcc.ufmg.br/~rcor/papers/ipdps2015twig.pdf)
 - [Distributed Skycube Computation with Anthill](http://homepages.dcc.ufmg.br/~lcerf/publications/articles/Distributed%20Skycube%20Computation%20with%20Anthill.pdf)
 
