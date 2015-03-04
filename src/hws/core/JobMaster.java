@@ -85,7 +85,7 @@ import hws.util.Logger;
  * This class implements a simple async app master.
  * In real usages, the callbacks should execute in a separate thread or thread pool
  */
-public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
+public class JobMaster implements AMRMClientAsync.CallbackHandler {
     private Configuration configuration;
     private NMClient nmClient;
     private String appIdStr;
@@ -101,9 +101,7 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
     private int numContainersToWaitFor;
     private int currentModuleIndex = 0;
 
-    private static final Log LOG = LogFactory.getLog(ApplicationMasterAsync.class);
-
-    public ApplicationMasterAsync(ModulePipeline modulePipeline, String appIdStr, String zksArgs, String []zkServers) {
+    public JobMaster(ModulePipeline modulePipeline, String appIdStr, String zksArgs, String []zkServers) {
         this.numContainersToWaitFor = 0; //TODO remove
 
         configuration = new YarnConfiguration();
@@ -131,9 +129,9 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
     public void onContainersAllocated(List<Container> containers) {
         FileSystem fs = null;
         try{
-        fs = FileSystem.get(getConfiguration());
+           fs = FileSystem.get(getConfiguration());
         }catch(IOException e){
-           e.printStackTrace();
+           Logger.severe(e.toString());
         }
         for (Container container : containers) {
             try{
@@ -304,7 +302,7 @@ public class ApplicationMasterAsync implements AMRMClientAsync.CallbackHandler {
            moduleNames = cmd.getOptionValues("rm");
         }
 
-        ApplicationMasterAsync master = new ApplicationMasterAsync(modulePipeline, appIdStr, zksArgs, zkServers);
+        JobMaster master = new JobMaster(modulePipeline, appIdStr, zksArgs, zkServers);
 
         if(modulePipelineJson!=null){
            Logger.info("Module Pipeline: "+modulePipelineJson);

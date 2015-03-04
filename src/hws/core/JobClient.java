@@ -83,9 +83,9 @@ import hws.core.info.ModulePipeline;
 import hws.util.Json;
 //import hws.util.Logger;
 
-public class Client {
+public class JobClient {
 
-  private static final Log LOG = LogFactory.getLog(Client.class);
+  private static final Log LOG = LogFactory.getLog(JobClient.class);
 
   Configuration conf = new YarnConfiguration();
   
@@ -211,12 +211,12 @@ public class Client {
     String modulePipelineJson = Json.dumps(modulePipeline);
     String modulePipelineBase64 = Base64.encodeBase64String(StringUtils.getBytesUtf8(modulePipelineJson)).replaceAll("\\s","");
     LOG.info("ModulePipeline: "+modulePipelineJson);
-    LOG.info("ModulePipeline: "+modulePipelineBase64);
+    //LOG.info("ModulePipeline: "+modulePipelineBase64);
     amContainer.setCommands(
         Collections.singletonList(
             "$JAVA_HOME/bin/java" +
             " -Xmx256M" +
-            " hws.core.ApplicationMasterAsync" +
+            " hws.core.JobMaster" +
             " -aid "+ appId.toString() +
             " --load " + modulePipelineBase64 +
             " " + zksArgs +
@@ -301,7 +301,7 @@ public class Client {
   }
 
   public static void main(String[] args) throws Exception {
-    Client c = new Client();
-    c.run(args);
+    JobClient client = new JobClient();
+    client.run(args);
   }
 }

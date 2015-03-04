@@ -81,13 +81,15 @@ class ExecutorThread<ExecutorType extends DefaultExecutor>  extends Thread {
 	public void run(){
         Logger.info("Starting stream processing pipeline");
         for(DefaultExecutor defaultExecutor: this.startingOrder){
-            defaultExecutor.start();
+            try{defaultExecutor.start();}
+            catch(Exception e){ Logger.severe(e.toString()); }
         }
         Logger.info("Finishing stream processing pipeline");
         ListIterator<DefaultExecutor> li = this.startingOrder.listIterator(this.startingOrder.size());
         while(li.hasPrevious()){
             DefaultExecutor defaultExecutor = li.previous();
-            defaultExecutor.finish();
+            try{ defaultExecutor.finish(); }
+            catch(Exception e){ Logger.severe(e.toString()); }
         }
         //zk.createPersistent(finishZnode, "");
         Logger.info("Latch Counting Down.");
@@ -226,7 +228,7 @@ public class InstanceDriver {
            this.latch.await(); //await the input threads to finish
         }catch(InterruptedException e){
            // handle
-           Logger.info("Waiting ERROR: "+e.getMessage());
+           Logger.severe("Waiting ERROR: "+e.getMessage());
         }
         
         Logger.info("Finishing Instance");
@@ -238,7 +240,8 @@ public class InstanceDriver {
 
     private void startExecutors(ExecutorService serverExecutor){
         for(DefaultExecutor defaultExecutor: this.outputStartingOrder){
-            defaultExecutor.start();
+            try{ defaultExecutor.start(); }
+            catch(Exception e){ Logger.severe(e.toString()); }
         }
         for(String channelName: this.executors.keySet()){
             serverExecutor.execute(this.executors.get(channelName));
@@ -249,7 +252,8 @@ public class InstanceDriver {
         ListIterator<DefaultExecutor> li = this.outputStartingOrder.listIterator(this.outputStartingOrder.size());
         while(li.hasPrevious()){
             DefaultExecutor defaultExecutor = li.previous();
-            defaultExecutor.finish();
+            try{ defaultExecutor.finish(); }
+            catch(Exception e){ Logger.severe(e.toString()); }
         }
     }
 
