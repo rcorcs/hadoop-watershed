@@ -14,14 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package hws.channel.nnet;
 
-package hws.channel.net;
+import java.util.Map.Entry;
+import java.util.AbstractMap.SimpleEntry;
 
-public class NetRoundRobinSender extends NetSender<String>{
-    int currentId = 0;
-    public void send(String data){
-       send(data, currentId++);
-       if(currentId>=numConsumerInstances()) currentId = 0;
+public class KeyValueSender extends NetSender{
+    public void send(Object obj){
+      int key;
+      //out.println("Channel sending: "+Json.dumps(obj));
+      //out.flush();
+      if(obj instanceof Entry){
+         //out.println("Is Entry: "+((Entry<?,?>)obj).getKey().toString());
+         //out.flush();
+         key = ((Entry<?,?>)obj).getKey().hashCode()%numConsumerInstances();
+      }else {
+         //out.println("Is NOT Entry");
+         //out.flush();
+         key = obj.hashCode()%numConsumerInstances();
+      }
+      if(key<0){
+         key = Math.abs(key)%numConsumerInstances();
+      }
+       send(obj, key);
     }
 }
 

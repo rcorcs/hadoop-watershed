@@ -15,37 +15,40 @@
  * limitations under the License.
  */
 
-package hws.channel.hdfs;
+package hws.channel.tachyon;
 
 import java.io.IOException;
 import java.io.EOFException;
+import java.io.DataInputStream;
 
-//import java.util.Deque;
-//import java.util.ArrayDeque;
+import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.yarn.util.ConverterUtils;
-import org.apache.hadoop.yarn.util.Apps;
-import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import tachyon.Constants;
+import tachyon.TachyonURI;
+import tachyon.Version;
+import tachyon.client.InStream;
+import tachyon.client.OutStream;
+import tachyon.client.ReadType;
+import tachyon.client.TachyonByteBuffer;
+import tachyon.client.TachyonFile;
+import tachyon.client.TachyonFS;
+import tachyon.client.WriteType;
+import tachyon.util.CommonUtils;
+import tachyon.thrift.ClientFileInfo;
 
 import hws.core.ChannelDeliver;
 import hws.util.Logger;
 
 public class LineReader extends ChannelDeliver{
-   private FileSystem fileSystem;
-   private FSDataInputStream reader;
-   private Map<String, FileStatus> files;
+   private TachyonFS fileSystem;
+   private DataInputStream reader;
+   private Map<String, TachyonFile> files;
    private SortedSet<String> fileSet;
-   //private Deque<String> filesQueue;
    private long totalBytes;
    private long beginPos;
    private long endPos;
@@ -56,50 +59,47 @@ public class LineReader extends ChannelDeliver{
       super.start();
       Logger.info("Starting channel deliver: "+channelName()+" instance "+instanceId());
 
-      files = new HashMap<String, FileStatus>();
+      files = new HashMap<String, TachyonFile>();
       fileSet = new TreeSet<String>();
       buffer = new StringBuffer();
       try{
-         Configuration conf = new Configuration();
-         //conf.setBoolean("fs.hdfs.impl.disable.cache", true);
-         fileSystem = FileSystem.get(conf);
-         //partition or not the file among the instances
+         String masterAttr = attribute("master");
+         TachyonURI masterAddress = new TachyonURI( masterAttr );
+         fileSystem = TachyonFS.get( masterAddress );
+
+		//partition or not the file among the instances
          boolean partition = !("false".equals(attribute("partition")));
+
          String pathAttr = attribute("path");
          //check if starts with "hdfs://"
-         if(!pathAttr.startsWith("hdfs://")){
-            pathAttr = "hdfs://"+pathAttr;
-         }
+         if(!pathAttr.startsWith("tachyon://"))
+            pathAttr = "tachyon://"+pathAttr;
+
          Logger.info("Opening path: " + pathAttr);
-         Path path = new Path(pathAttr);
-         ///reader = fileSystem.open(path);
+         TachyonURI  path = new TachyonURI( pathAttr );
+         TachyonFile file = fileSystem.getFile( path );
 
          //verifies if we have a path to a directory or to a file
-         if(fileSystem.isDirectory(path)){
-            //totalBytes
-            //a list of files
-            FileStatus[] status = fileSystem.listStatus(path);
+         if(file.isDirectory()){
+            List<ClientFileInfo> status = fileSystem.listStatus(path);
             totalBytes = 0;
-            for(int i=0;i<status.length;i++){
-               totalBytes += status[i].getLen();
-               fileSet.add(status[i].getPath().getName());
-               files.put(status[i].getPath().getName(), status[i]);
-               Logger.info("fileLen: " + status[i].getLen());
-               Logger.info("file path: "+status[i].getPath().toString());
+            for(ClientFileInfo fileInfo : status){
+              totalBytes += fileInfo.getLength();
+              TachyonURI fileInfoPath = new TachyonURI( fileInfo.getPath() );
+              files.put( fileInfo.getName(), fileSystem.getFile( fileInfoPath ) );
+              fileSet.add( fileInfo.getName() );
+              Logger.info("fileLen: " + fileInfo.getLength());
+              Logger.info("file path: " + fileInfoPath.toString());
             }
          }else{
             //a file
-            FileStatus status = fileSystem.getFileStatus(path);
-            files.put(path.getName(), status);
+            files.put(path.getName(), file);
             fileSet.add(path.getName());
-            totalBytes = status.getLen();
-            Logger.info("fileLen: " + status.getLen());
-            Logger.info("file path: "+status.getPath().toString());
+            totalBytes = file.length();
+            Logger.info("fileLen: " + file.length());
+            Logger.info("file path: "+path.toString());
          }
-         /*filesQueue = new ArrayDeque<String>();
-         for(String fileName: fileSet){
-            filesQueue.add(fileName);
-         }*/
+
          if(partition){
             //split
             int split = (int)Math.ceil((double)(totalBytes)/(double)(super.numFilterInstances()));
@@ -119,12 +119,13 @@ public class LineReader extends ChannelDeliver{
          Logger.info("pos: "+pos);
 
          //loading first file
-         nextFile(true);
+         nextFile();
 
          //deliverLine
          String line = readLine();
 
          while( line != null ){
+            //Logger.info( "--- line: " + line );
             deliver( line );
             line = readLine();
          }
@@ -140,12 +141,12 @@ public class LineReader extends ChannelDeliver{
          while(true){
             byte ch;
             try{
-               ch = reader.readByte(); //read before counting position
+               ch = reader.readByte();
                pos++; //position tracker
             }catch(EOFException e){
                String str = buffer.toString();
                buffer = new StringBuffer(); //TODO reset the same StringBuffer object
-               nextFile(false); //nextFile
+               nextFile(); //nextFile
                return str;
             }
 
@@ -178,7 +179,7 @@ public class LineReader extends ChannelDeliver{
       }
    }
 
-   private boolean nextFile(boolean firstFile) throws IOException{
+   private boolean nextFile() throws IOException{
       if(reader!=null){
          reader.close();
       }
@@ -187,18 +188,20 @@ public class LineReader extends ChannelDeliver{
       String nextFileName = null;
       long filePos = 0;
       for(String fName : fileSet){
-         if((totalRead+files.get(fName).getLen())>pos){
+         if((totalRead+files.get(fName).length())>pos){
             nextFileName = fName;
             filePos = pos-totalRead;
             break;
          }
-         totalRead += files.get(fName).getLen();
+         totalRead += files.get(fName).length();
       }
       if(nextFileName!=null){
-         reader = fileSystem.open(files.get(nextFileName).getPath());
+         InStream in = files.get( nextFileName ).getInStream( ReadType.CACHE );
+         reader = new DataInputStream( in );
          if(filePos>0){ //if the position to read is in the middle of the file, skip the previous line.
-            reader.seek(filePos-1);
-
+            //reader.seek(filePos-1); // funcionava com FSDataInputStream
+            //Logger.info( "--- skiped " + ( filePos-1 ) + " bytes" );
+            reader.skipBytes( (int) filePos-1 ); // nao temos seek, portanto pulamos os bytes desnecessarios.
             readLine();//go to the next line of the file
          }
          return true;

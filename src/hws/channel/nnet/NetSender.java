@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package hws.channel.net;
+package hws.channel.nnet;
 
 import java.io.*;
 
@@ -38,10 +38,10 @@ import io.netty.handler.codec.serialization.ObjectEncoder;  //serialization
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler; //channel event handler
 
+import hws.util.Logger;
 import hws.core.ChannelSender;
 
-public abstract class NetSender<DataType> extends ChannelSender<DataType>{
-    private PrintWriter out;
+public abstract class NetSender extends ChannelSender{
 
     //private EventLoopGroup []groups;
     private EventLoopGroup group;
@@ -116,59 +116,44 @@ public abstract class NetSender<DataType> extends ChannelSender<DataType>{
         //groups = new EventLoopGroup[numConsumerInstances()];
         this.group = new NioEventLoopGroup();
         channels = new Channel[numConsumerInstances()];
-        try{
-           out = new PrintWriter(new BufferedWriter(new FileWriter("/home/hadoop/rcor/yarn/channel-sender-"+channelName()+".out")));
-           out.println("Starting channel sender: "+channelName()+" instance "+instanceId());
-           out.flush();
+           Logger.info("Starting channel sender: "+channelName()+" instance "+instanceId());
            for(int id = 0; id<numConsumerInstances(); id++){
               String host = shared().wait("host-"+id);
-              out.println("connect to Host: "+host);
-              out.flush();
+              Logger.info("connect to Host: "+host);
               Integer port = shared().wait("port-"+id);
-              out.println("connect to Port: "+port);
-              out.flush();
+              Logger.info("connect to Port: "+port);
               try{
-                 out.println("Connecting to server id: "+id);
-                 out.flush();
+                 Logger.info("Connecting to server id: "+id);
                  channels[id] = connectToServer(host, port.intValue());
-                 out.println("Connection established");
-                 out.flush();
-                 if(channels[id]==null){out.println("Error, channel is null");out.flush();}
+                 Logger.info("Connection established");
+                 if(channels[id]==null){Logger.warning("Error, channel is null");}
               }catch(Exception e){
                  channels[id] = null;
               }
            }
-        }catch(IOException e){
-           e.printStackTrace();
-        }
 	}
 
 	public void finish(){
-        super.finish();
-        //try{
-           out.println("Finishing channel sender: "+channelName()+" instance "+instanceId());
-           out.flush();
+           Logger.info("Finishing channel sender: "+channelName()+" instance "+instanceId());
            for(int id = 0; id<numConsumerInstances(); id++){
-              out.println("Closing connection to server id "+id);
-              out.flush();
+              Logger.info("Closing connection to server id "+id);
               this.channels[id].flush();
-              this.channels[id].close();
-              out.println("Connection closed");
-              out.flush();
+	      try{
+              	this.channels[id].close().sync();
+	      }catch(InterruptedException e){
+		Logger.warning(e.getMessage());
+	      }
+              Logger.info("Connection closed");
            }
-           out.println("shuting down eventLoop");
-           out.flush();
+           Logger.info("shuting down eventLoop");
            this.group.shutdownGracefully();
-           out.println("Done finishing NetSender");
-           out.close();
-        /*}catch(IOException e){
-           e.printStackTrace();
-        }*/
+           Logger.info("Done finishing NetSender");
+           super.finish();
 	}
 
-    protected void send(DataType data, int consumerId){
-       out.println("Sending data to consumerId "+consumerId+" : "+data.toString());
-       this.channels[consumerId].writeAndFlush(data);
+    protected void send(Object obj, int consumerId){
+       Logger.info("Sending data to consumerId "+consumerId+" : "+obj.toString());
+       this.channels[consumerId].writeAndFlush(obj);
     }
 }
 

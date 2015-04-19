@@ -64,11 +64,13 @@ public class LineReader extends ChannelDeliver{
 				reader = new BufferedInputStream(new FileInputStream(file));
 			}
 			String line;
+                        Logger.info("Reading input file partition");
 			while( (line=readLine(reader))!=null){
 				//out.println(line);
 				deliver(line);
 				if(this.totalBytesRead>=bytesToRead && partition) break;
 			}
+                        Logger.info("Done reading input file partition");
 			reader.close();
 		}catch(IOException e){
 			Logger.severe(e.toString());

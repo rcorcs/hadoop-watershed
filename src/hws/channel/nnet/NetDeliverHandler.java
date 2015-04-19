@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package hws.channel.net;
+package hws.channel.nnet;
 
 import java.io.*;
 
@@ -24,31 +24,24 @@ import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
+import hws.util.Logger;
 import hws.core.ChannelDeliver;
 /**
  * Handler implementation for the system call server.
  */
 @Sharable
-public class NetDeliverHandler<DataType> extends ChannelInboundHandlerAdapter{
-    private PrintWriter out;
-    private ChannelDeliver<DataType> channelDeliver;
-	public NetDeliverHandler(ChannelDeliver<DataType> channelDeliver){
+public class NetDeliverHandler extends ChannelInboundHandlerAdapter{
+    private ChannelDeliver channelDeliver;
+	public NetDeliverHandler(ChannelDeliver channelDeliver){
 		this.channelDeliver = channelDeliver;
 
-        try{
-          out = new PrintWriter(new BufferedWriter(new FileWriter("/home/hadoop/rcor/yarn/net-deliver-handler.out")));
-          out.println("Starting channel deliver handler");
-          out.flush();
-        }catch(IOException e){
-          e.printStackTrace();
-        }
+          Logger.info("Starting channel deliver handler");
 	}
 	
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg){
-        out.println("delivering: "+msg.toString());
-        out.flush();
-        this.channelDeliver.deliver((DataType)msg);
+        Logger.info("delivering: "+msg.toString());
+        this.channelDeliver.deliver(msg);
 		/*SystemCallRequest req = (SystemCallRequest)msg;
 		System.out.println("Server received: "+req.module()+"."+req.method());
 		SystemCallReply reply = new SystemCallReply(req.module(),req.method(),null,"Unknown Module: "+req.module(),SystemCallErrorType.WARNING);

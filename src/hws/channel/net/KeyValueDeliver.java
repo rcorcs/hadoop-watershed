@@ -62,6 +62,8 @@ public class KeyValueDeliver extends ChannelDeliver {
       try{
          Logger.info("Binding to a listening port");
          server = new ServerSocket(0);
+         server.setSoTimeout(0);
+         server.setPerformancePreferences(0,1,2);
       }catch(IOException e){
          Logger.severe(e.toString());
       }

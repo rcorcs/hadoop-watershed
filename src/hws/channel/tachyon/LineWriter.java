@@ -15,9 +15,10 @@
  * limitations under the License.
  */
 
-package hws.channel.hdfs;
+package hws.channel.tachyon;
 
 import java.io.IOException;
+import java.io.DataOutputStream;
 
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -25,53 +26,59 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.yarn.util.ConverterUtils;
-import org.apache.hadoop.yarn.util.Apps;
-import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import tachyon.Constants;
+import tachyon.TachyonURI;
+import tachyon.Version;
+import tachyon.client.InStream;
+import tachyon.client.OutStream;
+import tachyon.client.ReadType;
+import tachyon.client.TachyonByteBuffer;
+import tachyon.client.TachyonFile;
+import tachyon.client.TachyonFS;
+import tachyon.client.WriteType;
+import tachyon.util.CommonUtils;
 
 import hws.core.ChannelSender;
 import hws.util.Logger;
 
 public class LineWriter extends ChannelSender{
-   private FileSystem fileSystem;
-   private FSDataOutputStream writer;
+   private TachyonFS fileSystem;
+   private DataOutputStream writer;
 
    public void start(){
       super.start();
       Logger.info("Starting channel sender: "+channelName()+" instance "+instanceId());
 
       try{
-         Configuration conf = new Configuration();
-         //       conf.setBoolean("fs.hdfs.impl.disable.cache", true);
-         fileSystem = FileSystem.get(conf);
+         String masterAttr = attribute( "master" );
+         TachyonURI masterAddress = new TachyonURI( masterAttr );
+         fileSystem = TachyonFS.get( masterAddress );
 
          String pathAttr = attribute("path");
          //check if starts with "hdfs://"
-         if(!pathAttr.startsWith("hdfs://")){
-            pathAttr = "hdfs://"+pathAttr;
-         }
+         //if(!pathAttr.startsWith("hdfs://")){
+         //   pathAttr = "hdfs://"+pathAttr;
+         //}
          Logger.info("Opening path: " + pathAttr);
-         Path filePath;
+         TachyonURI filePath = null;
 
          //TODO if we have just one instance, create a file instead a folder of files.
          if( numConsumerInstances() == 1 ){
-            filePath = new Path( pathAttr );
+            filePath = new TachyonURI( pathAttr );
          } else{
-            // create a new folder to put the files
-            Path folderPath = new Path ( pathAttr );
-            if( !fileSystem.exists( folderPath ) ){
-               Logger.info("Creating folder: " + pathAttr);
-               fileSystem.mkdirs(folderPath);
-            }
+            // TODO create a new folder to put the files
+            //Path folderPath = new Path ( pathAttr );
+            //if( !fileSystem.exists( folderPath ) ){
+            //   Logger.info("Creating folder: " + pathAttr);
+            //   fileSystem.mkdirs(folderPath);
+            //}
             //create a file for this instance
-            filePath = new Path(pathAttr + "/" + instanceId());
+            //filePath = new Path(pathAttr + "/" + instanceId());
          }
-         writer = fileSystem.create(filePath);
+         fileSystem.createFile( filePath );
+         TachyonFile file = fileSystem.getFile( filePath );
+         OutStream out = file.getOutStream( WriteType.ASYNC_THROUGH );
+         writer = new DataOutputStream( out );
 
       }catch(IOException e){
          Logger.severe("EXCEPTION: "+e.toString());
@@ -106,10 +113,12 @@ public class LineWriter extends ChannelSender{
    }
 
    public void send( Object obj ){
-      byte[] dataBytes = (obj.toString() + "\n").getBytes();
+      String data = obj.toString();
+      byte[] dataBytes = (data + "\n").getBytes();
       try{
-         writer.write(dataBytes, 0, dataBytes.length);
-         writer.flush();
+        Logger.info( "--- line: " + data );
+        writer.write(dataBytes, 0, dataBytes.length);
+        writer.flush();
       }catch(IOException e){ ////TODO throw Exception
          Logger.severe(e.toString());
       }

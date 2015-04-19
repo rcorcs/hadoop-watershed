@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package hws.channel.net;
+package hws.channel.nnet;
 
-public class NetBroadcastSender extends NetSender<String>{
-    public void send(String data){
-       for(int id = 0; id<numConsumerInstances(); id++){
-          send(data, id);
-       }
+public class RoundRobinSender extends NetSender{
+    int currentId = 0;
+    public void send(Object obj){
+       send(obj, currentId++);
+       if(currentId>=numConsumerInstances()) currentId = 0;
     }
 }
 

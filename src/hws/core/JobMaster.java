@@ -384,14 +384,25 @@ public class JobMaster implements AMRMClientAsync.CallbackHandler {
         capability.setVirtualCores(1);
 
         final CountDownLatch doneLatch = new CountDownLatch(this.modulePipeline.size());
+		
         // Make container requests to ResourceManager
         for(ModuleInfo moduleInfo: this.modulePipeline){ //create containers for each instance of each module
+	   /**
+   	   * Escalonamento:
+	   * criaria o objeto do scheduler
+	   * BaseScheduler scheduler = (BaseScheduler)Class.forName(moduleInfo.getScheduler().className()).newInstance();
+           * scheduler.setAttributes(moduleInfo.getScheduler().attributes());
+           * scheduler.setFilterInstances(moduleInfo.numFilterInstances());
+	   * scheduler.runScheduler(); //metodo abstrato
+                 ->> setInstanceLocations( String[] );
+	   */
            zk.createPersistent("/hadoop-watershed/"+this.appIdStr+"/"+moduleInfo.filterInfo().name(), "");
            zk.createPersistent("/hadoop-watershed/"+this.appIdStr+"/"+moduleInfo.filterInfo().name()+"/finish", "");
            zk.createPersistent("/hadoop-watershed/"+this.appIdStr+"/"+moduleInfo.filterInfo().name()+"/halted", "");
            zk.subscribeChildChanges("/hadoop-watershed/"+this.appIdStr+"/"+moduleInfo.filterInfo().name()+"/finish", createFinishListener(moduleInfo.filterInfo().name(), moduleInfo.numFilterInstances(), doneLatch));
            for(int i = 0; i<moduleInfo.numFilterInstances(); i++){
               this.numContainersToWaitFor++;
+              //ContainerRequest containerAsk = new ContainerRequest(capability, scheduler.getInstanceLocations(i), null, priority);
               ContainerRequest containerAsk = new ContainerRequest(capability, null, null, priority);
               Logger.info("[AM] Making res-req for " +moduleInfo.filterInfo().name()+" "+ i);
               rmClient.addContainerRequest(containerAsk);

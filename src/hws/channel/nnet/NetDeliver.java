@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package hws.channel.net;
+package hws.channel.nnet;
 
 
 import java.io.*; //TODO debug
@@ -52,10 +52,11 @@ import io.netty.handler.codec.serialization.ClassResolvers; //serialization
 import io.netty.handler.codec.serialization.ObjectDecoder;  //serialization
 import io.netty.handler.codec.serialization.ObjectEncoder;  //serialization
 
+
+import hws.util.Logger;
 import hws.core.ChannelDeliver;
 
-public class NetDeliver extends ChannelDeliver<String> {
-    private PrintWriter out;
+public class NetDeliver extends ChannelDeliver{
 
     static final boolean SSL = false;
     private Channel serverChannel;
@@ -64,13 +65,7 @@ public class NetDeliver extends ChannelDeliver<String> {
 	public void start() {
        super.start();
        
-        try{
-           out = new PrintWriter(new BufferedWriter(new FileWriter("/home/hadoop/rcor/yarn/channel-deliver-"+channelName()+".out")));
-           out.println("Starting channel deliver: "+channelName()+" instance "+instanceId());
-           out.flush();
-        }catch(IOException e){
-           e.printStackTrace();
-        }
+           Logger.info("Starting channel deliver: "+channelName()+" instance "+instanceId());
        // Configure SSL.
         final SslContext sslCtx;
         if (SSL) {
@@ -78,8 +73,7 @@ public class NetDeliver extends ChannelDeliver<String> {
             SelfSignedCertificate ssc = new SelfSignedCertificate();
             sslCtx = SslContext.newServerContext(ssc.certificate(), ssc.privateKey());
             }catch(Exception e){
-               out.println("ERROR: "+e.getMessage());
-               out.flush();
+               Logger.warning(e.getMessage());
             }
         } else {
             sslCtx = null;
@@ -112,8 +106,7 @@ public class NetDeliver extends ChannelDeliver<String> {
                  }
              });
 
-            out.println("Binding to a listening port");
-            out.flush();
+            Logger.info("Binding to a listening port");
             // Start the server.
             ChannelFuture f = b.bind(0).sync();
             this.serverChannel = f.channel();
@@ -121,54 +114,43 @@ public class NetDeliver extends ChannelDeliver<String> {
 
             SocketAddress socketAddress = this.serverChannel.localAddress();
             if(socketAddress instanceof InetSocketAddress){
-               out.println("Connected to port: "+((InetSocketAddress)socketAddress).getPort());
-               out.flush();
+               Logger.info("Connected to port: "+((InetSocketAddress)socketAddress).getPort());
                shared().set("host-"+instanceId(), hws.net.NetUtil.getLocalCanonicalHostName());
                shared().set("port-"+instanceId(), new Integer(((InetSocketAddress)socketAddress).getPort()));
             }
-            out.println("Host: "+hws.net.NetUtil.getLocalCanonicalHostName());
-            out.println("Connected to: "+f.channel().localAddress().toString());
-            out.flush();
+            Logger.info("Host: "+hws.net.NetUtil.getLocalCanonicalHostName());
+            Logger.info("Connected to: "+f.channel().localAddress().toString());
             
-            out.println("Running server, waiting for a close command");
-            out.flush();
+            Logger.info("Running server, waiting for a close command");
             // Wait until the server socket is closed.
             f.channel().closeFuture().sync();
-            out.println("Channel closed");
-            out.flush();
+            Logger.info("Channel closed");
         } catch(Exception e){
-           out.println("ERROR: "+e.getMessage());
-           out.flush();
+           Logger.warning(e.getMessage());
         }finally {
             // Shut down all event loops to terminate all threads.
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();
         }
-        out.println("Counting down the latch");
-        out.flush();
+        Logger.info("Counting down the latch");
         this.latch.countDown();
     }
 
     public void onProducersHalted(){
-       out.println("Closing server channel");
-       out.flush();
+       Logger.info("Closing server channel");
        this.serverChannel.close();
-       out.println("Closing command completed");
-       out.flush();
+       Logger.info("Closing command completed");
     }
 
-	public void finish(){
-       out.println("Waiting server channel to be closed");
-       out.flush();
+    public void finish(){
+       Logger.info("Waiting server channel to be closed");
        try {
            this.latch.await(); //await server channel to be closed
        }catch(InterruptedException e){
            // handle
-           out.println("Waiting ERROR: "+e.getMessage());
-           out.flush();
+           Logger.warning(e.getMessage());
        }
-       out.println("Finishing channel deliver: "+channelName()+" instance "+instanceId());
-       out.close();
+       Logger.info("Finishing channel deliver: "+channelName()+" instance "+instanceId());
        super.finish();
     }
 

@@ -15,30 +15,13 @@
  * limitations under the License.
  */
 
-package hws.core;
+package hws.channel.nnet;
 
-public class DefaultExecutor {
-	private boolean isRunning = false;
-	//private SystemCallInterface sysCall;
-
-	public void start(){
-		this.isRunning = true;
-	}
-
-	public void finish(){
-		this.isRunning = false;
-	}
-
-	public boolean isRunning(){
-		return this.isRunning;
-	}
-	/*
-	public SystemCallInterface getSystemCallInterface(){
-		return this.sysCall;
-	}
-
-	public void setSystemCallInterface(SystemCallInterface sysCall){
-		this.sysCall = sysCall;
-	}
-	*/
+public class BroadcastSender extends NetSender{
+    public void send(Object obj){
+       for(int id = 0; id<numConsumerInstances(); id++){
+          send(obj, id);
+       }
+    }
 }
+

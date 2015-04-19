@@ -40,7 +40,13 @@ public class KeyValueSender extends NetSender {
       }
       NodeCommunicator comm = getCommunicator(key);
       if(comm!=null){
+         //boolean retry = false;
+         //do{
          try{
+            //if(retry){
+            //   comm.reconnect();
+            //   retry = false;
+            //}
             //String json = Json.dumps(data);
             Serializable data = (Serializable)obj;
             byte[] dataBytes = SerializationUtils.serialize(data);
@@ -50,7 +56,9 @@ public class KeyValueSender extends NetSender {
             //comm.flush();
          }catch(IOException e){
             Logger.warning(e.toString());
+            //retry = true;
          }
+         //}while(retry);
       }
    }
 }
